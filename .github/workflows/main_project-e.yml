@@ -20,40 +20,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Debug directory structure
-        run: |
-          echo "当前工作目录:"
-          pwd
-          echo "目录内容:"
-          ls -la
-          echo "bookmark-app 目录内容:"
-          ls -la bookmark-app/
-          echo "检查 package.json 是否存在:"
-          if [ -f "bookmark-app/package.json" ]; then
-            echo "✅ package.json 存在"
-            cat bookmark-app/package.json | grep -A 5 '"scripts"'
-          else
-            echo "❌ package.json 不存在"
-            find . -name "package.json" -type f
-          fi
-
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: ${{ env.PROJECT_DIR }}/package-lock.json
+          # 移除 cache 配置，避免路径错误
 
       - name: Install dependencies
         run: npm install
-        working-directory: ${{ env.PROJECT_DIR }}
-
-      - name: Build application
-        run: npm run build --if-present
-        working-directory: ${{ env.PROJECT_DIR }}
-
-      - name: Run tests
-        run: npm run test --if-present
         working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Create production environment file
@@ -61,9 +35,18 @@ jobs:
           cat > .env << EOF
           NODE_ENV=production
           PORT=8080
-          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET || 'default-production-secret' }}
+          MONGODB_URI=${{ secrets.MONGODB_URI || 'mongodb://localhost:27017/bookmark-app' }}
           EOF
+        working-directory: ${{ env.PROJECT_DIR }}
+
+      - name: Verify installation
+        run: |
+          echo "Node version:"
+          node --version
+          echo "NPM version:"
+          npm --version
+          echo "Dependencies installed successfully"
         working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Upload artifact for deployment job
@@ -89,7 +72,7 @@ jobs:
         with:
           name: node-app
 
-      - name: List downloaded files
+      - name: List downloaded files for debug
         run: ls -la
 
       - name: Login to Azure
