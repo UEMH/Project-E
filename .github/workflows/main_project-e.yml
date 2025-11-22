@@ -15,11 +15,30 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # 🔑 关键修复：添加这个权限
+      id-token: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Debug secrets availability
+        run: |
+          echo "Checking if required secrets are available..."
+          if [ -n "${{ secrets.AZUREAPPSERVICE_CLIENTID_8A6D98E1F80F4312B6105D01692DAB73 }}" ]; then
+            echo "✅ AZURE_CLIENT_ID is available"
+          else
+            echo "❌ AZURE_CLIENT_ID is missing"
+          fi
+          if [ -n "${{ secrets.AZUREAPPSERVICE_TENANTID_0968EB81C6C94DBEBF9ED58A7D796B05 }}" ]; then
+            echo "✅ AZURE_TENANT_ID is available"
+          else
+            echo "❌ AZURE_TENANT_ID is missing"
+          fi
+          if [ -n "${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E33933A1915D43BE9E442E92E1B8A3AC }}" ]; then
+            echo "✅ AZURE_SUBSCRIPTION_ID is available"
+          else
+            echo "❌ AZURE_SUBSCRIPTION_ID is missing"
+          fi
 
       - name: Set up Node.js version
         uses: actions/setup-node@v3
@@ -28,16 +47,6 @@ jobs:
 
       - name: Install dependencies
         run: npm install
-        working-directory: ${{ env.PROJECT_DIR }}
-
-      - name: Create production environment file
-        run: |
-          cat > .env << EOF
-          NODE_ENV=production
-          PORT=8080
-          SESSION_SECRET=production-session-secret-placeholder
-          MONGODB_URI=mongodb://localhost:27017/bookmark-app
-          EOF
         working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Upload artifact for deployment job
@@ -63,7 +72,7 @@ jobs:
         with:
           name: node-app
 
-      - name: Login to Azure with OIDC
+      - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_8A6D98E1F80F4312B6105D01692DAB73 }}
