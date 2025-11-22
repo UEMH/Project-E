@@ -19,7 +19,7 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: bookmark-app/package-lock.json
+        cache-dependency-path: bookmark-app/package.json
         
     - name: Install dependencies
       run: npm install
@@ -42,3 +42,4 @@ jobs:
     - name: Deploy to Railway
       run: echo "Deploying to Railway..."
       # 这里可以添加 Railway 或其他平台的部署步骤
+
