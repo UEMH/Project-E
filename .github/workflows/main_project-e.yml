@@ -1,6 +1,3 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy Node.js app to Azure Web App - Project-E
 
 on:
@@ -9,45 +6,92 @@ on:
       - main
   workflow_dispatch:
 
+env:
+  NODE_VERSION: '20.x'
+  PROJECT_DIR: './bookmark-app'
+
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read #This is required for actions/checkout
+      contents: read
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Debug directory structure
+        run: |
+          echo "当前工作目录:"
+          pwd
+          echo "目录内容:"
+          ls -la
+          echo "bookmark-app 目录内容:"
+          ls -la bookmark-app/
+          echo "检查 package.json 是否存在:"
+          if [ -f "bookmark-app/package.json" ]; then
+            echo "✅ package.json 存在"
+            cat bookmark-app/package.json | grep -A 5 '"scripts"'
+          else
+            echo "❌ package.json 不存在"
+            find . -name "package.json" -type f
+          fi
 
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
-          node-version: '20.x'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ${{ env.PROJECT_DIR }}/package-lock.json
 
-      - name: npm install, build, and test
+      - name: Install dependencies
+        run: npm install
+        working-directory: ${{ env.PROJECT_DIR }}
+
+      - name: Build application
+        run: npm run build --if-present
+        working-directory: ${{ env.PROJECT_DIR }}
+
+      - name: Run tests
+        run: npm run test --if-present
+        working-directory: ${{ env.PROJECT_DIR }}
+
+      - name: Create production environment file
         run: |
-          npm install
-          npm run build --if-present
-          npm run test --if-present
+          cat > .env << EOF
+          NODE_ENV=production
+          PORT=8080
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          MONGODB_URI=${{ secrets.MONGODB_URI }}
+          EOF
+        working-directory: ${{ env.PROJECT_DIR }}
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: node-app
-          path: .
+          path: ${{ env.PROJECT_DIR }}
 
   deploy:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write #This is required for requesting the JWT
-      contents: read #This is required for actions/checkout
+      id-token: write
+      contents: read
+
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
         with:
           name: node-app
-      
+
+      - name: List downloaded files
+        run: ls -la
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -62,4 +106,3 @@ jobs:
           app-name: 'Project-E'
           slot-name: 'Production'
           package: .
-          
