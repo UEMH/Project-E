@@ -15,7 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write  # 必需：用于 OIDC 身份验证
 
     steps:
       - name: Checkout code
@@ -50,8 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     permissions:
-      id-token: write  # 必需：用于 OIDC 身份验证
-      contents: read
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
 
     environment:
       name: 'Production'
@@ -77,4 +76,5 @@ jobs:
           app-name: 'Project-E'
           slot-name: 'Production'
           package: .
+
 
