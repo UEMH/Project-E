@@ -61,8 +61,6 @@ router.post('/login', async (req, res) => {
     // 使用数据库验证
     const user = await User.findOne({ username: trimmedUsername });
     
-    console.log('查询结果:', user ? `用户找到: ${user.username}` : '用户未找到');
-    
     if (!user) {
       console.log('用户未找到:', trimmedUsername);
       return res.render('login', { 
@@ -72,14 +70,10 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    console.log('开始密码验证...');
-    console.log('输入密码长度:', password.length);
-    console.log('存储的密码哈希:', user.password ? '存在' : '不存在');
+    console.log(`用户找到: ${user.username}, ID: ${user._id}`);
     
-    // 使用安全的密码比较
-    const isPasswordCorrect = await bcrypt.compare(password, user.password);
-    
-    console.log('密码验证结果:', isPasswordCorrect);
+    // 使用用户模型的密码比较方法
+    const isPasswordCorrect = await user.comparePassword(password);
     
     if (!isPasswordCorrect) {
       console.log('密码验证失败');
@@ -98,7 +92,8 @@ router.post('/login', async (req, res) => {
     };
     
     // 更新最后登录时间
-    await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
+    user.lastLogin = new Date();
+    await user.save();
     
     console.log(`✅ 用户登录成功: ${user.username}`);
     return res.redirect('/');
@@ -106,7 +101,7 @@ router.post('/login', async (req, res) => {
   } catch (error) {
     console.error('❌ 登录错误:', error);
     res.render('login', { 
-      error: '登录失败，请稍后重试',
+      error: '登录失败，请稍后重试: ' + error.message,
       user: null,
       dbConnected: res.locals.dbConnected
     });
@@ -176,12 +171,11 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    // 创建新用户
+    // 创建新用户 - 使用明文密码，pre-save 钩子会加密
     console.log('正在创建新用户...');
-    const hashedPassword = await bcrypt.hash(password, 12);
     const user = new User({ 
       username: trimmedUsername, 
-      password: hashedPassword
+      password: password  // 明文密码
     });
     
     await user.save();
@@ -199,8 +193,16 @@ router.post('/register', async (req, res) => {
     
   } catch (error) {
     console.error('❌ 注册错误:', error);
+    
+    let errorMessage = '注册失败，请稍后重试';
+    if (error.code === 11000) {
+      errorMessage = '用户名已存在';
+    } else if (error.name === 'ValidationError') {
+      errorMessage = Object.values(error.errors).map(err => err.message).join(', ');
+    }
+    
     res.render('register', { 
-      error: '注册失败，请稍后重试: ' + error.message,
+      error: errorMessage,
       user: null,
       dbConnected: res.locals.dbConnected
     });
