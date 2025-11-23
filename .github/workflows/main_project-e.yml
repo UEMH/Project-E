@@ -23,9 +23,6 @@ jobs:
         with:
           node-version: '20.x'
 
-      - name: Rename app.js to server.js
-        run: mv app.js server.js
-
       - name: npm install, build, and test
         run: |
           npm install
@@ -71,5 +68,6 @@ jobs:
           app-name: 'Project-E'
           slot-name: 'Production'
           package: .
+
 
 
