@@ -20,7 +20,7 @@
             overflow-x: hidden;
         }
         
-        /* 数据库状态指示器 */
+        /* 数据库状态指示器 - 只在未登录时显示 */
         .database-status {
             position: fixed;
             top: 10px;
@@ -32,10 +32,16 @@
             border-radius: 15px;
             font-size: 0.8rem;
             backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
         }
         
         .database-status.connected {
             background: rgba(46, 204, 113, 0.9);
+        }
+        
+        /* 登录后隐藏数据库状态 */
+        .logged-in .database-status {
+            display: none;
         }
         
         /* 用户信息栏 */
@@ -53,6 +59,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            transition: all 0.3s ease;
         }
         
         .auth-btn {
@@ -86,6 +93,10 @@
         }
         
         .top-bookmarks.collapsed {
+            transform: translateY(-100%);
+        }
+        
+        .top-bookmarks.collapsed + .user-info {
             transform: translateY(-100%);
         }
         
@@ -210,6 +221,7 @@
             backdrop-filter: blur(10px);
             max-width: 600px;
             margin: 2rem auto;
+            transition: all 0.3s ease;
         }
         
         .user-welcome h2 {
@@ -268,93 +280,6 @@
             background: rgba(76, 175, 80, 1);
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        
-        /* 隐藏内容区域当用户登录时 */
-        .content.logged-in {
-            display: none;
-        }
-        
-        /* 模态框样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .modal-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 400px;
-            color: #333;
-        }
-        
-        .modal h2 {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            color: #333;
-        }
-        
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #555;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-        }
-        
-        .modal-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 1.5rem;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            flex: 1;
-            transition: background 0.3s;
-        }
-        
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #45a049;
-        }
-        
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #5a6268;
         }
         
         /* 展开按钮 */
@@ -547,11 +472,17 @@
             .user-welcome p {
                 font-size: 1rem;
             }
+            
+            .user-info {
+                padding: 6px 12px;
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
-<body>
-    <!-- 数据库状态指示器 -->
+<body class="<%= user ? 'logged-in' : '' %>">
+    <!-- 数据库状态指示器 - 只在未登录时显示 -->
+    <% if (!user) { %>
     <div class="database-status <%= dbConnected ? 'connected' : '' %>">
         <% if (dbConnected) { %>
             ✅ 数据库已连接
@@ -559,6 +490,7 @@
             ❌ 数据库连接失败
         <% } %>
     </div>
+    <% } %>
 
     <!-- 用户信息栏 -->
     <div class="user-info">
