@@ -3,12 +3,12 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const router = express.Router();
 
-// 离线用户数据
+// 离线用户数据 - 使用简单的密码验证（避免bcrypt问题）
 const offlineUsers = {
   'UEMH-CHAN': {
     id: 'offline-admin',
     username: 'UEMH-CHAN',
-    passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/eoS3V3PLgw8sWefQa'
+    password: '041018' // 明文密码，用于离线验证
   }
 };
 
@@ -35,7 +35,7 @@ router.get('/register', (req, res) => {
   });
 });
 
-// 登录处理（支持离线模式）
+// 登录处理（简化离线验证）
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -73,20 +73,17 @@ router.post('/login', async (req, res) => {
       console.log('数据库登录失败，尝试离线登录:', dbError.message);
     }
     
-    // 数据库登录失败，尝试离线登录
+    // 离线登录 - 使用简单的密码比较
     const offlineUser = offlineUsers[trimmedUsername];
-    if (offlineUser) {
-      const isValid = await bcrypt.compare(password, offlineUser.passwordHash);
-      if (isValid) {
-        req.session.userId = offlineUser.id;
-        req.session.user = { 
-          id: offlineUser.id,
-          username: offlineUser.username
-        };
-        
-        console.log('✅ 离线登录成功');
-        return res.redirect('/');
-      }
+    if (offlineUser && password === offlineUser.password) {
+      req.session.userId = offlineUser.id;
+      req.session.user = { 
+        id: offlineUser.id,
+        username: offlineUser.username
+      };
+      
+      console.log('✅ 离线登录成功');
+      return res.redirect('/');
     }
     
     // 所有登录方式都失败
