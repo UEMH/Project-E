@@ -2,9 +2,28 @@ const express = require('express');
 const User = require('../models/User');
 const router = express.Router();
 
+// 创建默认用户（在应用启动时调用）
+const createDefaultUser = async () => {
+  try {
+    const existingUser = await User.findOne({ username: 'UEMH-CHAN' });
+    if (!existingUser) {
+      const defaultUser = new User({
+        username: 'UEMH-CHAN',
+        password: '041018'
+      });
+      await defaultUser.save();
+      console.log('✅ 默认用户 UEMH-CHAN 创建成功');
+    }
+  } catch (error) {
+    console.error('创建默认用户错误:', error);
+  }
+};
+
+// 调用创建默认用户
+createDefaultUser();
+
 // 登录页面
 router.get('/login', (req, res) => {
-  // 如果已经登录，重定向到首页
   if (req.session.userId) {
     return res.redirect('/');
   }
@@ -16,7 +35,6 @@ router.get('/login', (req, res) => {
 
 // 注册页面
 router.get('/register', (req, res) => {
-  // 如果已经登录，重定向到首页
   if (req.session.userId) {
     return res.redirect('/');
   }
@@ -29,40 +47,35 @@ router.get('/register', (req, res) => {
 // 登录处理
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
     
-    // 验证输入
-    if (!email || !password) {
+    if (!username || !password) {
       return res.render('login', { 
-        error: '邮箱和密码不能为空',
+        error: '用户名和密码不能为空',
         user: null
       });
     }
     
-    // 查找用户
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ username: username });
     if (!user) {
       return res.render('login', { 
-        error: '邮箱或密码错误',
+        error: '用户名或密码错误',
         user: null
       });
     }
     
-    // 验证密码
     const isPasswordCorrect = await user.correctPassword(password, user.password);
     if (!isPasswordCorrect) {
       return res.render('login', { 
-        error: '邮箱或密码错误',
+        error: '用户名或密码错误',
         user: null
       });
     }
     
-    // 设置会话
     req.session.userId = user._id;
     req.session.user = { 
       id: user._id,
-      username: user.username, 
-      email: user.email 
+      username: user.username
     };
     
     console.log(`用户登录成功: ${user.username}`);
@@ -80,10 +93,9 @@ router.post('/login', async (req, res) => {
 // 注册处理
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password, confirmPassword } = req.body;
+    const { username, password, confirmPassword } = req.body;
     
-    // 验证输入
-    if (!username || !email || !password || !confirmPassword) {
+    if (!username || !password || !confirmPassword) {
       return res.render('register', { 
         error: '所有字段都必须填写',
         user: null
@@ -104,36 +116,26 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    // 检查用户是否已存在
-    const existingUser = await User.findOne({ 
-      $or: [
-        { email: email.toLowerCase() }, 
-        { username: username }
-      ] 
-    });
+    const existingUser = await User.findOne({ username: username });
     
     if (existingUser) {
       return res.render('register', { 
-        error: '用户名或邮箱已存在',
+        error: '用户名已存在',
         user: null
       });
     }
     
-    // 创建新用户
     const user = new User({ 
       username: username.trim(), 
-      email: email.toLowerCase().trim(), 
       password 
     });
     
     await user.save();
     
-    // 设置会话
     req.session.userId = user._id;
     req.session.user = { 
       id: user._id,
-      username: user.username, 
-      email: user.email 
+      username: user.username
     };
     
     console.log(`新用户注册成功: ${user.username}`);
@@ -142,16 +144,13 @@ router.post('/register', async (req, res) => {
   } catch (error) {
     console.error('注册错误:', error);
     
-    // 处理 MongoDB 重复键错误
     if (error.code === 11000) {
-      const field = Object.keys(error.keyPattern)[0];
       return res.render('register', { 
-        error: `${field === 'email' ? '邮箱' : '用户名'}已存在`,
+        error: '用户名已存在',
         user: null
       });
     }
     
-    // 处理验证错误
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(err => err.message);
       return res.render('register', { 
@@ -173,7 +172,7 @@ router.post('/logout', (req, res) => {
     if (err) {
       console.error('注销错误:', err);
     }
-    res.redirect('/login');
+    res.redirect('/');
   });
 });
 
