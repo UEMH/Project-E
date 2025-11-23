@@ -34,6 +34,7 @@ let dbConnected = false;
 const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://Altaasadm:1520134824@cluster0.x3thnlr.mongodb.net/bookmark-app?retryWrites=true&w=majority&appName=Cluster0';
 
 // 数据库连接函数
+// 在数据库连接成功后添加以下代码
 const connectDB = async () => {
   try {
     console.log('🔄 正在连接到 MongoDB...');
@@ -51,27 +52,21 @@ const connectDB = async () => {
     console.log('✅ 已成功连接到 MongoDB 数据库');
     dbConnected = true;
     
-    // 测试数据库操作
+    // 测试数据库操作并创建默认用户
     try {
       const User = require('./models/User');
       const userCount = await User.countDocuments();
       console.log(`📊 数据库中现有用户数量: ${userCount}`);
+      
+      // 创建默认管理员用户
+      await User.createDefaultAdmin();
     } catch (testError) {
-      console.log('⚠️  数据库连接测试完成，但用户集合可能尚未创建');
+      console.log('⚠️  数据库连接测试完成，但用户集合操作可能有问题:', testError.message);
     }
     
   } catch (err) {
     console.error('❌ MongoDB 连接错误:', err.message);
-    console.error('🔧 错误详情:', err);
     dbConnected = false;
-    
-    // 提供具体的解决建议
-    if (err.name === 'MongoServerSelectionError') {
-      console.log('💡 解决方案:');
-      console.log('   1. 检查 MongoDB Atlas IP 白名单设置');
-      console.log('   2. 验证连接字符串中的用户名和密码');
-      console.log('   3. 检查集群状态');
-    }
   }
 };
 
@@ -197,3 +192,4 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 module.exports = app;
+
