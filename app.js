@@ -6,6 +6,7 @@ const MongoStore = require('connect-mongo');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
 
 const app = express();
 
@@ -37,7 +38,7 @@ const connectDB = async () => {
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000, // 5秒超时
+      serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
     });
     console.log('✅ 已连接到 MongoDB 数据库');
@@ -51,7 +52,7 @@ const connectDB = async () => {
 
 connectDB();
 
-// 会话配置（使用内存存储作为后备）
+// 会话配置
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'fallback-secret-key-change-in-production',
   resave: false,
@@ -59,16 +60,12 @@ const sessionConfig = {
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
     maxAge: 24 * 60 * 60 * 1000
-  }
-};
-
-// 如果MongoDB连接成功，使用MongoStore，否则使用内存存储
-if (dbConnected) {
-  sessionConfig.store = MongoStore.create({
+  },
+  store: dbConnected ? MongoStore.create({
     mongoUrl: mongoUri,
     collectionName: 'sessions'
-  });
-}
+  }) : undefined
+};
 
 app.use(session(sessionConfig));
 
@@ -104,16 +101,25 @@ const upload = multer({
     }
   },
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
+    fileSize: 5 * 1024 * 1024
   }
 });
+
+// 创建内存中的用户数据（用于离线模式）
+const offlineUsers = {
+  'UEMH-CHAN': {
+    id: 'offline-admin',
+    username: 'UEMH-CHAN',
+    password: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/eoS3V3PLgw8sWefQa' // 041018 的哈希
+  }
+};
 
 // 路由
 app.use('/', require('./routes/auth'));
 app.use('/bookmarks', require('./routes/bookmarks'));
 app.use('/api', require('./routes/api'));
 
-// 主页路由 - 直接显示主页面
+// 主页路由
 app.get('/', (req, res) => {
   res.render('dashboard', { 
     user: req.session.user || null,
@@ -139,32 +145,42 @@ app.post('/upload-wallpaper', upload.single('wallpaper'), (req, res) => {
   });
 });
 
-// 离线登录路由（绕过数据库验证）
-app.post('/offline-login', (req, res) => {
+// 离线登录路由
+app.post('/offline-login', async (req, res) => {
   const { username, password } = req.body;
   
   console.log('离线登录尝试:', { username, password });
   
-  // 只允许默认管理员账号离线登录
-  if (username === 'UEMH-CHAN' && password === '041018') {
-    req.session.userId = 'offline-admin';
-    req.session.user = { 
-      id: 'offline-admin',
-      username: 'UEMH-CHAN'
-    };
-    
-    console.log('✅ 离线登录成功');
-    return res.json({ 
-      success: true, 
-      message: '离线登录成功',
-      user: req.session.user
-    });
-  } else {
-    return res.status(401).json({ 
+  if (!username || !password) {
+    return res.status(400).json({ 
       success: false, 
-      error: '离线登录仅支持默认管理员账号' 
+      error: '用户名和密码不能为空' 
     });
   }
+  
+  const user = offlineUsers[username];
+  if (user) {
+    const isValid = await bcrypt.compare(password, user.password);
+    if (isValid) {
+      req.session.userId = user.id;
+      req.session.user = { 
+        id: user.id,
+        username: user.username
+      };
+      
+      console.log('✅ 离线登录成功');
+      return res.json({ 
+        success: true, 
+        message: '离线登录成功',
+        user: req.session.user
+      });
+    }
+  }
+  
+  return res.status(401).json({ 
+    success: false, 
+    error: '用户名或密码错误' 
+  });
 });
 
 // 健康检查端点
@@ -173,7 +189,8 @@ app.get('/health', (req, res) => {
     status: 'OK', 
     timestamp: new Date(),
     database: dbConnected ? 'connected' : 'disconnected',
-    offlineMode: !dbConnected
+    offlineMode: !dbConnected,
+    session: req.session.user ? 'logged_in' : 'not_logged_in'
   });
 });
 
@@ -185,10 +202,11 @@ app.get('/system-status', (req, res) => {
       uri: mongoUri ? '已配置' : '未配置'
     },
     session: {
-      user: req.session.user ? '已登录' : '未登录',
+      user: req.session.user ? req.session.user.username : '未登录',
       userId: req.session.userId
     },
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    offlineUsers: Object.keys(offlineUsers)
   });
 });
 
@@ -215,6 +233,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 服务器运行在端口 ${PORT}`);
   console.log(`🌍 环境: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  数据库状态: ${dbConnected ? '已连接' : '未连接 - 离线模式'}`);
+  console.log(`👤 离线用户: UEMH-CHAN / 041018`);
 });
 
 module.exports = app;
