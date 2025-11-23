@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UEMH_HP - 个人书签管理</title>
+    <title><%= user ? user.username + '的书签' : 'UEMH_HP - 个人书签管理' %></title>
     <link rel="icon" type="image/x-icon" href="/images/cat.ico">
     <style>
         * { 
@@ -200,29 +200,79 @@
             transition: opacity 0.5s ease;
         }
         
-        .content {
-            padding: 120px 20px 20px;
-            max-width: 1200px;
-            margin: 0 auto;
+        /* 用户专属欢迎信息 */
+        .user-welcome {
             text-align: center;
-            min-height: 100vh;
+            margin-bottom: 2rem;
+            padding: 2rem;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            max-width: 600px;
+            margin: 2rem auto;
+        }
+        
+        .user-welcome h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .user-welcome p {
+            font-size: 1.2rem;
+            color: #ccc;
+            line-height: 1.6;
+        }
+        
+        /* 访客欢迎信息 */
+        .guest-welcome {
+            text-align: center;
+            padding: 2rem;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
+            min-height: 70vh;
         }
         
-        .content h1 {
+        .guest-welcome h1 {
             font-size: 3rem;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
         }
         
-        .content p {
+        .guest-welcome p {
             font-size: 1.2rem;
             max-width: 600px;
             line-height: 1.6;
             text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            margin-bottom: 2rem;
+        }
+        
+        /* 登录提示按钮 */
+        .login-prompt {
+            display: inline-block;
+            background: rgba(76, 175, 80, 0.8);
+            color: white;
+            padding: 12px 30px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+            margin-top: 1rem;
+        }
+        
+        .login-prompt:hover {
+            background: rgba(76, 175, 80, 1);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        /* 隐藏内容区域当用户登录时 */
+        .content.logged-in {
+            display: none;
         }
         
         /* 模态框样式 */
@@ -482,11 +532,19 @@
                 font-size: 0.9rem;
             }
             
-            .content h1 {
+            .guest-welcome h1 {
                 font-size: 2rem;
             }
             
-            .content p {
+            .guest-welcome p {
+                font-size: 1rem;
+            }
+            
+            .user-welcome h2 {
+                font-size: 2rem;
+            }
+            
+            .user-welcome p {
                 font-size: 1rem;
             }
         }
@@ -538,16 +596,23 @@
         <div class="bg-image" id="bgImage"></div>
     </div>
     
-    <div class="content" id="content">
+    <!-- 用户登录后的专属欢迎信息 -->
+    <% if (user) { %>
+    <div class="user-welcome" id="userWelcome">
+        <h2>欢迎回来, <%= user.username %>!</h2>
+        <p>您的个人书签已准备就绪，点击上方书签开始使用</p>
+    </div>
+    <% } else { %>
+    <!-- 访客欢迎信息 -->
+    <div class="guest-welcome">
         <h1>欢迎使用 UEMH_HP</h1>
         <p>这是一个简洁美观的浏览器起始页，收藏夹固定在顶部方便访问。右键点击空白区域可以添加新收藏项。</p>
-        <% if (!user) { %>
-            <p><a href="/login" style="color: #4FC3F7; text-decoration: none;">立即登录</a>以使用完整功能</p>
-        <% } %>
+        <a href="/login" class="login-prompt">立即登录以使用完整功能</a>
         <% if (!dbConnected) { %>
-            <p style="color: #ffa500;">⚠️ 数据库连接失败，部分功能可能受限</p>
+            <p style="color: #ffa500; margin-top: 1rem;">⚠️ 数据库连接失败，部分功能可能受限</p>
         <% } %>
     </div>
+    <% } %>
     
     <!-- 右键菜单 -->
     <div class="context-menu" id="contextMenu">
@@ -690,6 +755,20 @@
             setupDebugControls();
             
             debug('初始化完成');
+            
+            // 如果用户已登录，3秒后隐藏欢迎信息
+            <% if (user) { %>
+            setTimeout(() => {
+                const userWelcome = document.getElementById('userWelcome');
+                if (userWelcome) {
+                    userWelcome.style.opacity = '0';
+                    userWelcome.style.transition = 'opacity 1s ease';
+                    setTimeout(() => {
+                        userWelcome.style.display = 'none';
+                    }, 1000);
+                }
+            }, 3000);
+            <% } %>
         });
 
         // 初始化DOM元素
@@ -717,7 +796,6 @@
             helpBtn = document.getElementById('helpBtn');
             collapseBtn = document.getElementById('collapseBtn');
             expandBookmarks = document.getElementById('expandBookmarks');
-            content = document.getElementById('content');
             closeHelp = document.getElementById('closeHelp');
             
             // 壁纸相关元素
@@ -1070,7 +1148,6 @@
         // 收起收藏栏
         function collapseBookmarks() {
             topBookmarks.classList.add('collapsed');
-            content.classList.add('collapsed');
             debugContainer.classList.add('debug-hidden');
             isDebugHidden = true;
             expandBookmarks.style.display = 'block';
@@ -1081,7 +1158,6 @@
         // 展开收藏栏
         function expandBookmarksFunc() {
             topBookmarks.classList.remove('collapsed');
-            content.classList.remove('collapsed');
             debugContainer.classList.remove('debug-hidden');
             isDebugHidden = false;
             expandBookmarks.style.display = 'none';
