@@ -10,14 +10,6 @@ const userSchema = new mongoose.Schema({
     minlength: [3, '用户名至少3个字符'],
     maxlength: [30, '用户名不能超过30个字符']
   },
-  email: {
-    type: String,
-    required: [true, '邮箱不能为空'],
-    unique: true,
-    trim: true,
-    lowercase: true,
-    match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, '请输入有效的邮箱地址']
-  },
   password: {
     type: String,
     required: [true, '密码不能为空'],
@@ -31,7 +23,6 @@ const userSchema = new mongoose.Schema({
 
 // 密码加密中间件
 userSchema.pre('save', async function(next) {
-  // 只有在密码被修改时才加密
   if (!this.isModified('password')) return next();
   
   try {
