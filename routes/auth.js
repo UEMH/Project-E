@@ -32,7 +32,10 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
-    console.log('登录尝试:', { username: username ? username.trim() : '空' });
+    console.log('登录尝试:', { 
+      username: username ? username.trim() : '空',
+      passwordLength: password ? password.length : 0
+    });
     
     if (!username || !password) {
       return res.render('login', { 
@@ -53,8 +56,12 @@ router.post('/login', async (req, res) => {
       });
     }
     
+    console.log('正在查找用户:', trimmedUsername);
+    
     // 使用数据库验证
     const user = await User.findOne({ username: trimmedUsername });
+    
+    console.log('查询结果:', user ? '用户找到' : '用户未找到');
     
     if (!user) {
       return res.render('login', { 
@@ -64,7 +71,12 @@ router.post('/login', async (req, res) => {
       });
     }
     
+    console.log('开始密码验证...');
+    
+    // 使用安全的密码比较
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    
+    console.log('密码验证结果:', isPasswordCorrect);
     
     if (!isPasswordCorrect) {
       return res.render('login', { 
@@ -99,7 +111,10 @@ router.post('/register', async (req, res) => {
   try {
     const { username, password, confirmPassword } = req.body;
     
-    console.log('注册尝试:', { username: username ? username.trim() : '空' });
+    console.log('注册尝试:', { 
+      username: username ? username.trim() : '空',
+      passwordLength: password ? password.length : 0
+    });
     
     // 检查数据库连接
     if (!res.locals.dbConnected) {
@@ -155,6 +170,7 @@ router.post('/register', async (req, res) => {
     }
     
     // 创建新用户
+    console.log('正在创建新用户...');
     const hashedPassword = await bcrypt.hash(password, 12);
     const user = new User({ 
       username: trimmedUsername, 
@@ -162,6 +178,7 @@ router.post('/register', async (req, res) => {
     });
     
     await user.save();
+    console.log(`✅ 新用户注册成功: ${user.username}`);
     
     // 自动登录新用户
     req.session.userId = user._id;
@@ -170,13 +187,12 @@ router.post('/register', async (req, res) => {
       username: user.username
     };
     
-    console.log(`✅ 新用户注册成功: ${user.username}`);
     return res.redirect('/');
     
   } catch (error) {
     console.error('❌ 注册错误:', error);
     res.render('register', { 
-      error: '注册失败，请稍后重试',
+      error: '注册失败，请稍后重试: ' + error.message,
       user: null,
       dbConnected: res.locals.dbConnected
     });
