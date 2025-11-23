@@ -1,28 +1,25 @@
-// config/database.js
 const mongoose = require('mongoose');
 
 // 数据库连接配置
 const dbConfig = {
-  // 第 5 行：开发者需要在此处填写完整的 MongoDB 连接字符串
   uri: process.env.MONGODB_URI || 'mongodb+srv://Altaasadm:1520134824@cluster0.x3thnlr.mongodb.net/bookmark-app?retryWrites=true&w=majority&appName=Cluster0',
   options: {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 15000, // 增加到15秒，给云数据库更多时间
+    serverSelectionTimeoutMS: 30000,
     socketTimeoutMS: 45000,
     bufferCommands: false,
-    bufferMaxEntries: 0,
-    // MongoDB Atlas 特定配置
     retryWrites: true,
     w: 'majority',
-    // 第 18 行：开发者可以在此处添加其他 MongoDB Atlas 连接选项
+    maxPoolSize: 10,
+    minPoolSize: 5
   }
 };
 
 // 连接状态跟踪
 let isConnected = false;
 let connectionRetries = 0;
-const maxRetries = 5; // 增加重试次数
+const maxRetries = 3;
 
 // 数据库连接函数
 const connectDB = async () => {
@@ -42,6 +39,14 @@ const connectDB = async () => {
     connectionRetries = 0;
     console.log('✅ MongoDB Atlas 连接成功');
     
+    // 测试连接
+    try {
+      await mongoose.connection.db.admin().ping();
+      console.log('✅ MongoDB 连接测试通过');
+    } catch (pingError) {
+      console.log('⚠️  MongoDB 连接测试失败，但连接已建立:', pingError.message);
+    }
+    
     return true;
   } catch (error) {
     connectionRetries++;
@@ -55,19 +60,20 @@ const connectDB = async () => {
       console.log('   - MongoDB Atlas IP 白名单未配置');
       console.log('   - 网络连接问题');
       console.log('   - 数据库凭据错误');
+    } else if (error.name === 'MongoNetworkError') {
+      console.log('💡 网络连接问题，请检查:');
+      console.log('   - 网络连接是否正常');
+      console.log('   - 防火墙设置');
+      console.log('   - DNS解析');
     }
     
     // 如果重试次数未达到上限，可以安排重试
     if (connectionRetries < maxRetries) {
-      const retryDelay = 3000 * connectionRetries; // 递增延迟
+      const retryDelay = 5000 * connectionRetries;
       console.log(`⏳ ${retryDelay}ms 后重试连接...`);
       setTimeout(connectDB, retryDelay);
     } else {
-      console.log('💡 应用将在离线模式下运行，管理员账号仍可登录');
-      console.log('🔧 要启用完整功能，请检查:');
-      console.log('   1. MongoDB Atlas 连接字符串是否正确');
-      console.log('   2. IP 地址是否已添加到 Atlas 白名单');
-      console.log('   3. 数据库用户密码是否正确');
+      console.log('💡 应用将在受限模式下运行');
     }
     
     return false;
