@@ -38,6 +38,38 @@
             gap: 10px;
         }
         
+        /* 背景容器样式 */
+        .background-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        
+        .bg-image {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background-size: cover;
+            background-position: center;
+            opacity: 1;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading {
+            display: none;
+        }
+        
+        .error-message {
+            display: none;
+        }
+        
         /* 其余CSS样式保持不变 */
         /* ... 原有的所有CSS样式 ... */
     </style>
@@ -83,18 +115,14 @@
     <!-- 收藏夹收起时的展开按钮 -->
     <button class="expand-bookmarks" id="expandBookmarks" title="展開收藏夾">▼</button>
 
+    <!-- 背景容器 - 使用CSS渐变背景 -->
     <div class="background-container">
         <div class="bg-image" id="bgImage"></div>
-        <div class="loading" id="loading">圖片加載中...</div>
-        <div class="error-message" id="errorMessage">
-            <h2>無法加載背景圖片</h2>
-            <p>請檢查圖片路徑是否正確</p>
-        </div>
     </div>
     
     <div class="content" id="content">
-        <h1> </h1>
-        <p> </p>
+        <h1>欢迎使用 UEMH_HP</h1>
+        <p>这是一个简洁美观的浏览器起始页，收藏夹固定在顶部方便访问。右键点击空白区域可以添加新收藏项。</p>
     </div>
     
     <!-- 右键菜单 -->
@@ -201,9 +229,9 @@
     <script>
         // 初始收藏项数据
         const defaultBookmarks = [
-            { id: 1, name: "Google", url: "https://www.google.com", icon: "https://favicon.pub/google.com" },
-            { id: 2, name: "YouTube", url: "https://www.youtube.com", icon: "https://favicon.pub/youtube.com" },
-            { id: 3, name: "GitHub", url: "https://github.com", icon: "https://favicon.pub/github.com" },
+            { id: 1, name: "Google", url: "https://www.google.com", icon: "https://www.google.com/favicon.ico" },
+            { id: 2, name: "YouTube", url: "https://www.youtube.com", icon: "https://www.youtube.com/favicon.ico" },
+            { id: 3, name: "GitHub", url: "https://github.com", icon: "https://github.com/favicon.ico" },
             { id: 4, name: "", url: "https://homdgcat.wiki/sr/char?lang=CH", icon: "https://favicon.is/homdgcat.wiki" },
             { id: 5, name: "表情符号", url: "https://example.com", icon: "🔍" }
         ];
@@ -237,31 +265,686 @@
             loadCollapseState();
             setupDebugControls();
             
-            // 图片加载处理
-            const loading = document.getElementById('loading');
-            const bgImage = document.getElementById('bgImage');
-            const errorMessage = document.getElementById('errorMessage');
-            
-            // 创建测试图片以检查是否可加载
-            const testImage = new Image();
-            testImage.onload = function() {
-                loading.style.display = 'none';
-                bgImage.style.opacity = '1';
-                debug('背景图片加载成功');
-            };
-            
-            testImage.onerror = function() {
-                loading.style.display = 'none';
-                errorMessage.style.display = 'block';
-                debug('背景图片加载失败');
-            };
-            
-            // 使用默认背景图片
-            testImage.src = '/images/Night_copy.jpg';
+            debug('初始化完成');
         });
 
-        // 其余JavaScript代码保持不变...
-        // ... 保持原有的所有JavaScript功能代码
+        // 初始化DOM元素
+        function initDOMElements() {
+            debug('初始化DOM元素');
+            
+            topBookmarks = document.getElementById('topBookmarks');
+            bookmarksBar = document.getElementById('bookmarksBar');
+            contextMenu = document.getElementById('contextMenu');
+            bookmarkModal = document.getElementById('bookmarkModal');
+            helpModal = document.getElementById('helpModal');
+            wallpaperModal = document.getElementById('wallpaperModal');
+            
+            modalTitle = document.getElementById('modalTitle');
+            bookmarkName = document.getElementById('bookmarkName');
+            bookmarkUrl = document.getElementById('bookmarkUrl');
+            bookmarkIcon = document.getElementById('bookmarkIcon');
+            iconPreview = document.getElementById('iconPreview');
+            saveBookmarkBtn = document.getElementById('saveBookmark');
+            cancelBookmarkBtn = document.getElementById('cancelBookmark');
+            addBookmarkBtn = document.getElementById('addBookmark');
+            editBookmarkBtn = document.getElementById('editBookmark');
+            deleteBookmarkBtn = document.getElementById('deleteBookmark');
+            importBookmarksBtn = document.getElementById('importBookmarks');
+            helpBtn = document.getElementById('helpBtn');
+            collapseBtn = document.getElementById('collapseBtn');
+            expandBookmarks = document.getElementById('expandBookmarks');
+            content = document.getElementById('content');
+            closeHelp = document.getElementById('closeHelp');
+            
+            // 壁纸相关元素
+            changeWallpaperBtn = document.getElementById('changeWallpaper');
+            wallpaperFile = document.getElementById('wallpaperFile');
+            wallpaperPreview = document.getElementById('wallpaperPreview');
+            cancelWallpaperBtn = document.getElementById('cancelWallpaper');
+            saveWallpaperBtn = document.getElementById('saveWallpaper');
+            
+            // 调试相关元素
+            debugContainer = document.getElementById('debugContainer');
+            debugInfo = document.getElementById('debugInfo');
+            debugToggle = document.getElementById('debugToggle');
+            debugHide = document.getElementById('debugHide');
+            debugOpacity = document.getElementById('debugOpacity');
+            debugHeader = document.getElementById('debugHeader');
+            
+            debug('DOM元素初始化完成');
+        }
+
+        // 设置事件监听器
+        function setupEventListeners() {
+            debug('开始设置事件监听器');
+            
+            // 点击其他地方隐藏右键菜单
+            document.addEventListener('click', () => {
+                contextMenu.style.display = 'none';
+            });
+            
+            // 右键菜单选项
+            addBookmarkBtn.addEventListener('click', () => {
+                contextMenu.style.display = 'none';
+                showBookmarkModal();
+                debug('点击添加收藏项按钮');
+            });
+            
+            editBookmarkBtn.addEventListener('click', () => {
+                contextMenu.style.display = 'none';
+                showBookmarkModal(true);
+                debug('点击编辑收藏项按钮');
+            });
+            
+            deleteBookmarkBtn.addEventListener('click', () => {
+                contextMenu.style.display = 'none';
+                deleteBookmark();
+                debug('点击删除收藏项按钮');
+            });
+            
+            // 模态框按钮
+            saveBookmarkBtn.addEventListener('click', saveBookmark);
+            debug('保存收藏项按钮事件监听器已设置');
+            
+            cancelBookmarkBtn.addEventListener('click', () => {
+                bookmarkModal.style.display = 'none';
+                debug('点击取消按钮');
+            });
+            
+            // 图标预览
+            bookmarkIcon.addEventListener('input', updateIconPreview);
+            debug('图标预览事件监听器已设置');
+            
+            // 导入功能
+            importBookmarksBtn.addEventListener('click', function() {
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.accept = '.html';
+                fileInput.onchange = function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const content = e.target.result;
+                        parseBookmarksHTML(content);
+                    };
+                    reader.readAsText(file);
+                    debug('选择文件: ' + file.name);
+                };
+                fileInput.click();
+            });
+            
+            // 壁纸功能
+            changeWallpaperBtn.addEventListener('click', showWallpaperModal);
+            cancelWallpaperBtn.addEventListener('click', hideWallpaperModal);
+            saveWallpaperBtn.addEventListener('click', uploadWallpaper);
+            wallpaperFile.addEventListener('change', previewWallpaper);
+            
+            // 帮助按钮
+            helpBtn.addEventListener('click', () => {
+                helpModal.style.display = 'flex';
+                debug('点击帮助按钮');
+            });
+            
+            closeHelp.addEventListener('click', () => {
+                helpModal.style.display = 'none';
+                debug('点击关闭帮助按钮');
+            });
+            
+            // 收起/展开功能
+            collapseBtn.addEventListener('click', collapseBookmarks);
+            expandBookmarks.addEventListener('click', expandBookmarksFunc);
+            debug('收起/展开按钮事件监听器已设置');
+            
+            debug('所有事件监听器设置完成');
+        }
+
+        // 显示壁纸模态框
+        function showWallpaperModal() {
+            <% if (!user) { %>
+                alert('请先登录以使用壁纸更改功能');
+                return;
+            <% } %>
+            wallpaperModal.style.display = 'flex';
+            wallpaperFile.value = '';
+            wallpaperPreview.style.display = 'none';
+            debug('显示更改壁纸模态框');
+        }
+
+        // 隐藏壁纸模态框
+        function hideWallpaperModal() {
+            wallpaperModal.style.display = 'none';
+            debug('隐藏更改壁纸模态框');
+        }
+
+        // 预览壁纸
+        function previewWallpaper(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewImg = document.getElementById('wallpaperPreviewImg');
+                    previewImg.src = e.target.result;
+                    wallpaperPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+                debug('壁纸预览已更新');
+            }
+        }
+
+        // 上传壁纸
+        function uploadWallpaper() {
+            const file = wallpaperFile.files[0];
+            if (!file) {
+                alert('请选择壁纸图片');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                // 保存壁纸到本地存储
+                localStorage.setItem('customWallpaper', e.target.result);
+                
+                // 更新背景图片
+                document.getElementById('bgImage').style.backgroundImage = `url('${e.target.result}')`;
+                
+                alert('壁纸更换成功！');
+                hideWallpaperModal();
+                debug('壁纸更换成功');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // 加载收藏项
+        function loadBookmarks() {
+            const savedBookmarks = localStorage.getItem('customBookmarks');
+            if (savedBookmarks) {
+                bookmarks = JSON.parse(savedBookmarks);
+                debug('从本地存储加载收藏项: ' + bookmarks.length + ' 项');
+            } else {
+                bookmarks = [...defaultBookmarks];
+                saveBookmarks();
+                debug('使用默认收藏项');
+            }
+            
+            // 加载自定义壁纸
+            const customWallpaper = localStorage.getItem('customWallpaper');
+            if (customWallpaper) {
+                document.getElementById('bgImage').style.backgroundImage = `url('${customWallpaper}')`;
+                debug('加载自定义壁纸');
+            }
+        }
+
+        // 保存收藏项到本地存储
+        function saveBookmarks() {
+            localStorage.setItem('customBookmarks', JSON.stringify(bookmarks));
+            debug('保存收藏项到本地存储: ' + bookmarks.length + ' 项');
+        }
+
+        // 渲染收藏项
+        function renderBookmarks() {
+            bookmarksBar.innerHTML = '';
+            
+            bookmarks.forEach(bookmark => {
+                const bookmarkElement = document.createElement('div');
+                bookmarkElement.className = 'bookmark-item';
+                bookmarkElement.setAttribute('data-id', bookmark.id);
+                bookmarkElement.draggable = true;
+                
+                let iconHTML = '';
+                if (bookmark.icon) {
+                    if (bookmark.icon.startsWith('http')) {
+                        iconHTML = `
+                            <div class="icon-container">
+                                <img src="${bookmark.icon}" class="bookmark-icon" alt="${bookmark.name}" onerror="handleIconError(this)">
+                            </div>
+                        `;
+                    } else {
+                        iconHTML = `
+                            <div class="icon-container">
+                                <span class="emoji-icon">${bookmark.icon}</span>
+                            </div>
+                        `;
+                    }
+                } else {
+                    iconHTML = `
+                        <div class="icon-container">
+                            <span class="emoji-icon">🔗</span>
+                        </div>
+                    `;
+                }
+                
+                if (!bookmark.name || bookmark.name.trim() === '') {
+                    bookmarkElement.innerHTML = `
+                        <a href="${bookmark.url}" target="_blank" title="${bookmark.url}">${iconHTML}</a>
+                    `;
+                } else {
+                    bookmarkElement.innerHTML = `
+                        ${iconHTML}
+                        <a href="${bookmark.url}" target="_blank">${bookmark.name}</a>
+                    `;
+                }
+                
+                bookmarksBar.appendChild(bookmarkElement);
+            });
+            
+            setupBookmarkEvents();
+            debug('渲染收藏项完成: ' + bookmarks.length + ' 项');
+        }
+
+        // 处理图标加载错误
+        function handleIconError(imgElement) {
+            const container = imgElement.parentNode;
+            container.innerHTML = '<span class="emoji-icon">❌</span>';
+            debug('图标加载失败，显示错误图标');
+        }
+
+        // 设置收藏项事件监听
+        function setupBookmarkEvents() {
+            const bookmarkItems = document.querySelectorAll('.bookmark-item');
+            
+            bookmarkItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    const id = parseInt(item.getAttribute('data-id'));
+                    const bookmark = bookmarks.find(b => b.id === id);
+                    if (bookmark) {
+                        window.open(bookmark.url, '_blank');
+                        debug('打开链接: ' + bookmark.url);
+                    }
+                });
+                
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    currentBookmarkId = parseInt(item.getAttribute('data-id'));
+                    
+                    contextMenu.style.display = 'block';
+                    contextMenu.style.left = `${e.pageX}px`;
+                    contextMenu.style.top = `${e.pageY}px`;
+                    
+                    addBookmarkBtn.style.display = 'none';
+                    editBookmarkBtn.style.display = 'block';
+                    deleteBookmarkBtn.style.display = 'block';
+                    
+                    debug('显示右键菜单 - 编辑收藏项 ID: ' + currentBookmarkId);
+                });
+                
+                // 拖拽事件
+                item.addEventListener('dragstart', (e) => {
+                    item.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', item.getAttribute('data-id'));
+                    debug('开始拖拽收藏项 ID: ' + item.getAttribute('data-id'));
+                });
+                
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    debug('结束拖拽收藏项');
+                });
+                
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+                
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const draggedId = parseInt(e.dataTransfer.getData('text/plain'));
+                    const targetId = parseInt(item.getAttribute('data-id'));
+                    
+                    if (draggedId !== targetId) {
+                        moveBookmark(draggedId, targetId);
+                    }
+                });
+            });
+            
+            bookmarksBar.addEventListener('contextmenu', (e) => {
+                if (e.target === bookmarksBar) {
+                    e.preventDefault();
+                    currentBookmarkId = null;
+                    
+                    contextMenu.style.display = 'block';
+                    contextMenu.style.left = `${e.pageX}px`;
+                    contextMenu.style.top = `${e.pageY}px`;
+                    
+                    addBookmarkBtn.style.display = 'block';
+                    editBookmarkBtn.style.display = 'none';
+                    deleteBookmarkBtn.style.display = 'none';
+                    
+                    debug('显示右键菜单 - 添加新收藏项');
+                }
+            });
+            
+            debug('收藏项事件监听设置完成: ' + bookmarkItems.length + ' 项');
+        }
+
+        // 移动收藏项
+        function moveBookmark(draggedId, targetId) {
+            const draggedIndex = bookmarks.findIndex(b => b.id === draggedId);
+            const targetIndex = bookmarks.findIndex(b => b.id === targetId);
+            
+            if (draggedIndex !== -1 && targetIndex !== -1) {
+                const [draggedItem] = bookmarks.splice(draggedIndex, 1);
+                bookmarks.splice(targetIndex, 0, draggedItem);
+                
+                saveBookmarks();
+                renderBookmarks();
+                debug('移动收藏项: ID ' + draggedId + ' 移动到位置 ' + targetIndex);
+            }
+        }
+
+        // 收起收藏栏
+        function collapseBookmarks() {
+            topBookmarks.classList.add('collapsed');
+            content.classList.add('collapsed');
+            debugContainer.classList.add('debug-hidden');
+            isDebugHidden = true;
+            expandBookmarks.style.display = 'block';
+            saveCollapseState();
+            debug('收起收藏栏并隐藏调试窗口');
+        }
+
+        // 展开收藏栏
+        function expandBookmarksFunc() {
+            topBookmarks.classList.remove('collapsed');
+            content.classList.remove('collapsed');
+            debugContainer.classList.remove('debug-hidden');
+            isDebugHidden = false;
+            expandBookmarks.style.display = 'none';
+            saveCollapseState();
+            debug('展开收藏栏并显示调试窗口');
+        }
+
+        // 更新图标预览
+        function updateIconPreview() {
+            const iconValue = bookmarkIcon.value.trim();
+            iconPreview.innerHTML = '';
+            
+            if (iconValue) {
+                if (iconValue.startsWith('http')) {
+                    const img = document.createElement('img');
+                    img.src = iconValue;
+                    img.className = 'bookmark-icon';
+                    img.style.width = '100%';
+                    img.style.height = '100%';
+                    img.onerror = function() {
+                        iconPreview.innerHTML = '❌';
+                        debug('图标加载失败: ' + iconValue);
+                    };
+                    iconPreview.appendChild(img);
+                    debug('设置图标URL: ' + iconValue);
+                } else {
+                    iconPreview.innerHTML = iconValue;
+                    debug('设置图标表情: ' + iconValue);
+                }
+            }
+        }
+
+        // 显示添加/编辑收藏项模态框
+        function showBookmarkModal(edit = false) {
+            isEditing = edit;
+            
+            if (edit && currentBookmarkId) {
+                modalTitle.textContent = '编辑收藏';
+                const bookmark = bookmarks.find(b => b.id === currentBookmarkId);
+                if (bookmark) {
+                    bookmarkName.value = bookmark.name;
+                    bookmarkUrl.value = bookmark.url;
+                    bookmarkIcon.value = bookmark.icon || '';
+                    updateIconPreview();
+                }
+                debug('显示编辑收藏项模态框 - ID: ' + currentBookmarkId);
+            } else {
+                modalTitle.textContent = '添加收藏';
+                bookmarkName.value = '';
+                bookmarkUrl.value = '';
+                bookmarkIcon.value = '';
+                updateIconPreview();
+                debug('显示添加收藏项模态框');
+            }
+            
+            bookmarkModal.style.display = 'flex';
+        }
+
+        // 保存收藏项
+        async function saveBookmark() {
+            const name = bookmarkName.value.trim();
+            const url = bookmarkUrl.value.trim();
+            const icon = bookmarkIcon.value.trim();
+            
+            if (!url) {
+                alert('请填写网址');
+                debug('保存失败: 网址为空');
+                return;
+            }
+            
+            let formattedUrl = url;
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                formattedUrl = 'https://' + url;
+            }
+            
+            let finalIcon = icon;
+            
+            if (!finalIcon) {
+                debug('未提供图标，尝试自动获取网站图标');
+                finalIcon = await getFavicon(formattedUrl);
+            }
+            
+            if (isEditing && currentBookmarkId) {
+                const index = bookmarks.findIndex(b => b.id === currentBookmarkId);
+                if (index !== -1) {
+                    bookmarks[index].name = name;
+                    bookmarks[index].url = formattedUrl;
+                    bookmarks[index].icon = finalIcon;
+                    debug('更新收藏项 - ID: ' + currentBookmarkId);
+                }
+            } else {
+                const newId = bookmarks.length > 0 ? Math.max(...bookmarks.map(b => b.id)) + 1 : 1;
+                bookmarks.push({
+                    id: newId,
+                    name,
+                    url: formattedUrl,
+                    icon: finalIcon
+                });
+                debug('添加新收藏项 - ID: ' + newId);
+            }
+            
+            saveBookmarks();
+            renderBookmarks();
+            bookmarkModal.style.display = 'none';
+        }
+
+        // 获取网站图标
+        async function getFavicon(url) {
+            try {
+                const domain = new URL(url).hostname;
+                const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
+                
+                return await new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        debug('成功获取网站图标: ' + faviconUrl);
+                        resolve(faviconUrl);
+                    };
+                    img.onerror = () => {
+                        debug('无法获取网站图标，使用默认图标');
+                        resolve('❌');
+                    };
+                    img.src = faviconUrl;
+                });
+            } catch (error) {
+                debug('获取网站图标时出错: ' + error);
+                return '❌';
+            }
+        }
+
+        // 删除收藏项
+        function deleteBookmark() {
+            if (currentBookmarkId && confirm('确定要删除这个收藏项吗？')) {
+                bookmarks = bookmarks.filter(b => b.id !== currentBookmarkId);
+                saveBookmarks();
+                renderBookmarks();
+                debug('删除收藏项 - ID: ' + currentBookmarkId);
+            }
+        }
+
+        // 解析书签HTML文件
+        function parseBookmarksHTML(html) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            
+            const links = doc.querySelectorAll('a');
+            bookmarks = [];
+            
+            links.forEach(link => {
+                const href = link.getAttribute('href');
+                const text = link.textContent;
+                
+                if (href && href.startsWith('http')) {
+                    const newId = bookmarks.length > 0 ? Math.max(...bookmarks.map(b => b.id)) + 1 : 1;
+                    bookmarks.push({
+                        id: newId,
+                        name: text.length > 20 ? text.substring(0, 20) : text,
+                        url: href,
+                        icon: '🔗'
+                    });
+                }
+            });
+            
+            if (bookmarks.length === 0) {
+                bookmarks = [...defaultBookmarks];
+                alert('未找到書簽或文件格式不正確，已恢復默認書籤');
+                debug('导入失败: 未找到有效书签，恢复默认');
+            } else {
+                debug('成功导入书签: ' + bookmarks.length + ' 项');
+            }
+            
+            saveBookmarks();
+            renderBookmarks();
+        }
+
+        // 加载收起状态
+        function loadCollapseState() {
+            const isCollapsed = localStorage.getItem('bookmarksCollapsed') === 'true';
+            if (isCollapsed) {
+                collapseBookmarks();
+                debug('加载收起状态: 已收起');
+            } else {
+                expandBookmarks.style.display = 'none';
+                debug('加载收起状态: 未收起');
+            }
+            
+            const isDebugHidden = localStorage.getItem('debugHidden') === 'true';
+            if (isDebugHidden) {
+                debugContainer.classList.add('debug-hidden');
+                debugHide.textContent = '+';
+                isDebugHidden = true;
+                debug('加载调试窗口状态: 已隐藏');
+            }
+        }
+
+        // 保存收起状态
+        function saveCollapseState() {
+            localStorage.setItem('bookmarksCollapsed', topBookmarks.classList.contains('collapsed'));
+            debug('保存收起状态: ' + (topBookmarks.classList.contains('collapsed') ? '已收起' : '未收起'));
+            
+            localStorage.setItem('debugHidden', isDebugHidden);
+        }
+
+        // 设置调试窗口控制
+        function setupDebugControls() {
+            debugOpacity.addEventListener('input', function() {
+                const opacity = this.value / 100;
+                debugContainer.style.opacity = opacity;
+                debug('设置调试窗口透明度: ' + (opacity * 100) + '%');
+            });
+            
+            debugToggle.addEventListener('click', function() {
+                if (isDebugCollapsed) {
+                    debugContainer.classList.remove('debug-collapsed');
+                    debugToggle.textContent = '−';
+                    isDebugCollapsed = false;
+                    debug('展开调试窗口');
+                } else {
+                    debugContainer.classList.add('debug-collapsed');
+                    debugToggle.textContent = '+';
+                    isDebugCollapsed = true;
+                    debug('折叠调试窗口');
+                }
+            });
+            
+            debugHide.addEventListener('click', function() {
+                if (isDebugHidden) {
+                    debugContainer.classList.remove('debug-hidden');
+                    debugHide.textContent = '×';
+                    isDebugHidden = false;
+                    debug('显示调试窗口');
+                } else {
+                    debugContainer.classList.add('debug-hidden');
+                    debugHide.textContent = '+';
+                    isDebugHidden = true;
+                    debug('隐藏调试窗口');
+                }
+            });
+            
+            makeElementDraggable(debugContainer, debugHeader);
+            debug('调试窗口控制设置完成');
+        }
+
+        // 使元素可拖动
+        function makeElementDraggable(element, handle) {
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+            
+            handle.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            
+            function startDrag(e) {
+                isDragging = true;
+                const rect = element.getBoundingClientRect();
+                initialX = rect.left;
+                initialY = rect.top;
+                startX = e.clientX;
+                startY = e.clientY;
+                e.preventDefault();
+                debug('开始拖动调试窗口');
+            }
+            
+            function drag(e) {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                element.style.transform = `translate(${dx}px, ${dy}px)`;
+            }
+            
+            function stopDrag() {
+                if (!isDragging) return;
+                const transform = element.style.transform;
+                const matches = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
+                
+                if (matches) {
+                    const dx = parseFloat(matches[1]);
+                    const dy = parseFloat(matches[2]);
+                    let newX = initialX + dx;
+                    let newY = initialY + dy;
+                    const viewportWidth = window.innerWidth;
+                    const viewportHeight = window.innerHeight;
+                    const elementWidth = element.offsetWidth;
+                    const elementHeight = element.offsetHeight;
+                    newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth));
+                    newY = Math.max(0, Math.min(newY, viewportHeight - elementHeight));
+                    element.style.left = newX + 'px';
+                    element.style.top = newY + 'px';
+                    element.style.transform = 'none';
+                    element.style.right = 'auto';
+                    element.style.bottom = 'auto';
+                }
+                
+                isDragging = false;
+                debug('停止拖动调试窗口，位置已限制在视口内');
+            }
+        }
 
         // 调试函数
         function debug(message) {
