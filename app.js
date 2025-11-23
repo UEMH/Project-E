@@ -7,6 +7,7 @@ const multer = require('multer');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const MongoStore = require('connect-mongo');
+const { connectDB, checkConnection } = require('./config/database');
 
 const app = express();
 
@@ -31,51 +32,30 @@ app.set('views', path.join(__dirname, 'views'));
 
 // 数据库连接状态
 let dbConnected = false;
-const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://Altaasadm:1520134824@cluster0.x3thnlr.mongodb.net/bookmark-app?retryWrites=true&w=majority&appName=Cluster0';
 
-// 数据库连接函数
-// 在数据库连接成功后添加以下代码
-// 在数据库连接成功后添加以下代码
-const connectDB = async () => {
-  try {
-    console.log('🔄 正在连接到 MongoDB...');
-    
-    await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 30000,
-      socketTimeoutMS: 45000,
-      maxPoolSize: 10,
-      retryWrites: true,
-      w: 'majority'
-    });
-    
-    console.log('✅ 已成功连接到 MongoDB 数据库');
-    dbConnected = true;
-    
-    // 测试数据库操作并创建默认用户
+// 启动数据库连接
+const initializeDB = async () => {
+  dbConnected = await connectDB();
+  
+  // 如果数据库连接成功，创建默认用户
+  if (dbConnected) {
     try {
       const User = require('./models/User');
-      const userCount = await User.countDocuments();
-      console.log(`📊 数据库中现有用户数量: ${userCount}`);
-      
-      // 创建默认管理员用户
       await User.createDefaultAdmin();
       
-      // 列出所有用户（调试用）
-      await User.listAllUsers();
-    } catch (testError) {
-      console.log('⚠️  数据库连接测试完成，但用户集合操作可能有问题:', testError.message);
+      // 列出所有用户用于调试
+      const users = await User.find({}, 'username createdAt');
+      console.log('📋 数据库中的用户:');
+      users.forEach(user => {
+        console.log(`   - ${user.username} (创建于: ${user.createdAt})`);
+      });
+    } catch (error) {
+      console.error('❌ 用户初始化失败:', error.message);
     }
-    
-  } catch (err) {
-    console.error('❌ MongoDB 连接错误:', err.message);
-    dbConnected = false;
   }
 };
 
-// 启动数据库连接
-connectDB();
+initializeDB();
 
 // 会话配置
 app.use(session({
@@ -83,7 +63,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   store: MongoStore.create({
-    mongoUrl: mongoUri,
+    mongoUrl: process.env.MONGODB_URI || 'mongodb+srv://Altaasadm:1520134824@cluster0.x3thnlr.mongodb.net/bookmark-app?retryWrites=true&w=majority&appName=Cluster0',
     collectionName: 'sessions',
     ttl: 24 * 60 * 60 // 1天
   }),
@@ -96,7 +76,7 @@ app.use(session({
 // 全局变量中间件
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
-  res.locals.dbConnected = dbConnected;
+  res.locals.dbConnected = checkConnection();
   next();
 });
 
@@ -138,7 +118,7 @@ app.use('/api', require('./routes/api'));
 app.get('/', (req, res) => {
   res.render('dashboard', { 
     user: req.session.user || null,
-    dbConnected: dbConnected
+    dbConnected: checkConnection()
   });
 });
 
@@ -162,19 +142,44 @@ app.post('/upload-wallpaper', upload.single('wallpaper'), (req, res) => {
 
 // 健康检查端点
 app.get('/health', (req, res) => {
+  const dbInfo = getConnectionInfo();
   res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date(),
-    database: dbConnected ? 'connected' : 'disconnected',
-    session: req.session.user ? 'logged_in' : 'not_logged_in'
+    database: {
+      connected: dbInfo.isConnected,
+      state: dbInfo.readyStateText,
+      host: dbInfo.host,
+      name: dbInfo.name
+    },
+    session: req.session.user ? 'logged_in' : 'not_logged_in',
+    user: req.session.user ? req.session.user.username : null
   });
+});
+
+// 调试端点：获取所有用户
+app.get('/debug/users', async (req, res) => {
+  if (!checkConnection()) {
+    return res.status(500).json({ error: '数据库未连接' });
+  }
+  
+  try {
+    const User = require('./models/User');
+    const users = await User.find({}, 'username createdAt lastLogin');
+    res.json({
+      total: users.length,
+      users: users
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // 404 处理
 app.use((req, res) => {
   res.status(404).render('404', { 
     user: req.session.user || null,
-    dbConnected: dbConnected
+    dbConnected: checkConnection()
   });
 });
 
@@ -184,7 +189,7 @@ app.use((err, req, res, next) => {
   res.status(500).render('error', { 
     error: process.env.NODE_ENV === 'production' ? '服务器错误，请稍后重试' : err.message,
     user: req.session.user || null,
-    dbConnected: dbConnected
+    dbConnected: checkConnection()
   });
 });
 
@@ -192,9 +197,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 服务器运行在端口 ${PORT}`);
   console.log(`🌍 环境: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🗄️  数据库状态: ${dbConnected ? '已连接' : '未连接'}`);
+  console.log(`🗄️  数据库状态: ${checkConnection() ? '已连接' : '未连接'}`);
 });
 
 module.exports = app;
-
-
