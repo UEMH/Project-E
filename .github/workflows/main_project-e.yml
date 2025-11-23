@@ -30,7 +30,7 @@ jobs:
           npm run test --if-present
           npm install mongodb
           npm install multer@1.4.5-lts.1
-          mkdir -p public/images/wallpapers
+          
           
           
       - name: Upload artifact for deployment job
@@ -68,5 +68,6 @@ jobs:
           package: .
 
           
+
 
 
