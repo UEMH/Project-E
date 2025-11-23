@@ -3,38 +3,30 @@ const Bookmark = require('../models/Bookmark');
 const router = express.Router();
 
 // GET - 获取所有书签
-router.get('/bookmarks', async (req, res) => {
+// 在 api.js 文件末尾添加
+// 调试端点：重置用户密码
+router.post('/debug/reset-password', async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, userId } = req.query;
-    const query = {};
+    const { username, newPassword } = req.body;
     
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { url: { $regex: search, $options: 'i' } }
-      ];
+    if (!username || !newPassword) {
+      return res.status(400).json({ error: '用户名和新密码不能为空' });
     }
     
-    if (userId) {
-      query.userId = userId;
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ error: '用户未找到' });
     }
     
-    const bookmarks = await Bookmark.find(query)
-      .limit(limit * 1)
-      .skip((page - 1) * limit)
-      .sort({ createdAt: -1 });
+    user.password = newPassword;
+    await user.save();
     
-    const total = await Bookmark.countDocuments(query);
-    
-    res.json({
-      bookmarks,
-      totalPages: Math.ceil(total / limit),
-      currentPage: page,
-      total
+    res.json({ 
+      success: true, 
+      message: `用户 ${username} 密码已重置` 
     });
   } catch (error) {
-    console.error('获取书签API错误:', error);
-    res.status(500).json({ error: '获取书签失败' });
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -106,3 +98,4 @@ router.delete('/bookmarks/:id', async (req, res) => {
 });
 
 module.exports = router;
+
