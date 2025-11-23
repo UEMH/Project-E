@@ -35,6 +35,7 @@ const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://Altaasadm:1520134824@
 
 // 数据库连接函数
 // 在数据库连接成功后添加以下代码
+// 在数据库连接成功后添加以下代码
 const connectDB = async () => {
   try {
     console.log('🔄 正在连接到 MongoDB...');
@@ -60,6 +61,9 @@ const connectDB = async () => {
       
       // 创建默认管理员用户
       await User.createDefaultAdmin();
+      
+      // 列出所有用户（调试用）
+      await User.listAllUsers();
     } catch (testError) {
       console.log('⚠️  数据库连接测试完成，但用户集合操作可能有问题:', testError.message);
     }
@@ -192,4 +196,5 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 module.exports = app;
+
 
