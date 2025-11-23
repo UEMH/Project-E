@@ -55,15 +55,6 @@ jobs:
         with:
           name: node-app
 
-      - name: Create production .env file
-        run: |
-          cat > .env << EOF
-          NODE_ENV=production
-          PORT=8080
-          MONGODB_URI=${{ secrets.MONGODB_URI }}
-          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
-          EOF
-      
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -78,3 +69,4 @@ jobs:
           app-name: 'Project-E'
           slot-name: 'Production'
           package: .
+
