@@ -17,10 +17,16 @@ router.get('/', requireAuth, async (req, res) => {
     const bookmarks = await Bookmark.find({ userId: req.session.userId }).sort({ createdAt: -1 });
     res.render('dashboard', { 
       user: req.session.user,
-      bookmarks: JSON.stringify(bookmarks)
+      bookmarks: bookmarks,
+      dbConnected: true
     });
   } catch (error) {
-    res.status(500).render('error', { error: '获取书签失败' });
+    console.error('获取书签错误:', error);
+    res.status(500).render('error', { 
+      error: '获取书签失败',
+      user: req.session.user,
+      dbConnected: true
+    });
   }
 });
 
@@ -37,7 +43,12 @@ router.post('/', requireAuth, async (req, res) => {
     await bookmark.save();
     res.redirect('/bookmarks');
   } catch (error) {
-    res.status(500).render('error', { error: '创建书签失败' });
+    console.error('创建书签错误:', error);
+    res.status(500).render('error', { 
+      error: '创建书签失败',
+      user: req.session.user,
+      dbConnected: true
+    });
   }
 });
 
@@ -57,6 +68,7 @@ router.put('/:id', requireAuth, async (req, res) => {
     
     res.json(bookmark);
   } catch (error) {
+    console.error('更新书签错误:', error);
     res.status(500).json({ error: '更新书签失败' });
   }
 });
@@ -75,6 +87,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     
     res.json({ message: '书签删除成功' });
   } catch (error) {
+    console.error('删除书签错误:', error);
     res.status(500).json({ error: '删除书签失败' });
   }
 });
