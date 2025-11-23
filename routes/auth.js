@@ -2,7 +2,7 @@ const express = require('express');
 const User = require('../models/User');
 const router = express.Router();
 
-// 创建默认用户函数
+// 创建默认用户函数（带错误处理）
 const createDefaultUser = async () => {
   try {
     let existingUser = await User.findOne({ username: 'UEMH-CHAN' });
@@ -11,37 +11,23 @@ const createDefaultUser = async () => {
       console.log('创建默认用户 UEMH-CHAN...');
       const defaultUser = new User({
         username: 'UEMH-CHAN',
-        password: '041018' // 这会自动被加密
+        password: '041018'
       });
       
       await defaultUser.save();
       console.log('✅ 默认用户 UEMH-CHAN 创建成功');
-      
-      // 验证默认用户密码
-      const testUser = await User.findOne({ username: 'UEMH-CHAN' });
-      const isCorrect = await testUser.correctPassword('041018', testUser.password);
-      console.log('默认用户密码验证:', isCorrect ? '成功' : '失败');
     } else {
       console.log('✅ 默认用户 UEMH-CHAN 已存在');
-      
-      // 验证现有用户密码
-      const isCorrect = await existingUser.correctPassword('041018', existingUser.password);
-      console.log('现有用户密码验证:', isCorrect ? '成功' : '失败');
-      
-      if (!isCorrect) {
-        console.log('重置默认用户密码...');
-        existingUser.password = '041018';
-        await existingUser.save();
-        console.log('默认用户密码重置成功');
-      }
     }
   } catch (error) {
-    console.error('创建默认用户错误:', error);
+    console.error('创建默认用户错误（可忽略，将使用离线模式）:', error.message);
   }
 };
 
-// 应用启动时创建默认用户
-createDefaultUser();
+// 尝试创建默认用户（但不阻塞启动）
+createDefaultUser().catch(err => {
+  console.log('默认用户创建失败，将使用离线模式:', err.message);
+});
 
 // 登录页面
 router.get('/login', (req, res) => {
@@ -50,7 +36,8 @@ router.get('/login', (req, res) => {
   }
   res.render('login', { 
     error: null,
-    user: null 
+    user: null,
+    dbConnected: false // 在登录页面强制显示离线选项
   });
 });
 
@@ -65,7 +52,7 @@ router.get('/register', (req, res) => {
   });
 });
 
-// 登录处理
+// 登录处理（带离线后备）
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -81,38 +68,61 @@ router.post('/login', async (req, res) => {
     
     const trimmedUsername = username.trim();
     
-    // 查找用户
-    const user = await User.findOne({ username: trimmedUsername });
-    console.log('找到用户:', user ? `是 (${user.username})` : '否');
-    
-    if (!user) {
-      console.log('用户不存在:', trimmedUsername);
-      return res.render('login', { 
-        error: '用户名或密码错误',
-        user: null
-      });
+    // 尝试数据库登录
+    try {
+      // 查找用户
+      const user = await User.findOne({ username: trimmedUsername });
+      console.log('找到用户:', user ? `是 (${user.username})` : '否');
+      
+      if (!user) {
+        console.log('用户不存在:', trimmedUsername);
+        return res.render('login', { 
+          error: '用户名或密码错误',
+          user: null
+        });
+      }
+      
+      // 验证密码
+      const isPasswordCorrect = await user.correctPassword(password, user.password);
+      console.log('密码验证:', isPasswordCorrect ? '正确' : '错误');
+      
+      if (!isPasswordCorrect) {
+        return res.render('login', { 
+          error: '用户名或密码错误',
+          user: null
+        });
+      }
+      
+      // 登录成功
+      req.session.userId = user._id;
+      req.session.user = { 
+        id: user._id,
+        username: user.username
+      };
+      
+      console.log(`✅ 用户登录成功: ${user.username}`);
+      return res.redirect('/');
+      
+    } catch (dbError) {
+      console.error('数据库登录失败:', dbError.message);
+      
+      // 数据库失败时，尝试离线登录（仅限默认管理员）
+      if (trimmedUsername === 'UEMH-CHAN' && password === '041018') {
+        req.session.userId = 'offline-admin';
+        req.session.user = { 
+          id: 'offline-admin',
+          username: 'UEMH-CHAN'
+        };
+        
+        console.log('✅ 使用离线模式登录成功');
+        return res.redirect('/');
+      } else {
+        return res.render('login', { 
+          error: `登录失败: ${dbError.message}. 仅默认管理员账号支持离线登录。`,
+          user: null
+        });
+      }
     }
-    
-    // 验证密码
-    const isPasswordCorrect = await user.correctPassword(password, user.password);
-    console.log('密码验证:', isPasswordCorrect ? '正确' : '错误');
-    
-    if (!isPasswordCorrect) {
-      return res.render('login', { 
-        error: '用户名或密码错误',
-        user: null
-      });
-    }
-    
-    // 登录成功
-    req.session.userId = user._id;
-    req.session.user = { 
-      id: user._id,
-      username: user.username
-    };
-    
-    console.log(`✅ 用户登录成功: ${user.username}`);
-    res.redirect('/');
     
   } catch (error) {
     console.error('❌ 登录错误:', error);
@@ -203,7 +213,7 @@ router.post('/register', async (req, res) => {
     }
     
     res.render('register', { 
-      error: '注册失败，请稍后重试: ' + error.message,
+      error: '注册失败，数据库连接异常。请稍后重试或使用默认管理员账号登录。',
       user: null
     });
   }
@@ -220,24 +230,6 @@ router.post('/logout', (req, res) => {
     }
     res.redirect('/');
   });
-});
-
-// 用户诊断端点
-router.get('/debug-users', async (req, res) => {
-  try {
-    const users = await User.find({});
-    res.json({
-      totalUsers: users.length,
-      users: users.map(user => ({
-        id: user._id,
-        username: user.username,
-        passwordLength: user.password ? user.password.length : 0,
-        createdAt: user.createdAt
-      }))
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
 });
 
 module.exports = router;
