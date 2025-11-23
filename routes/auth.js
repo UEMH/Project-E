@@ -61,9 +61,10 @@ router.post('/login', async (req, res) => {
     // 使用数据库验证
     const user = await User.findOne({ username: trimmedUsername });
     
-    console.log('查询结果:', user ? '用户找到' : '用户未找到');
+    console.log('查询结果:', user ? `用户找到: ${user.username}` : '用户未找到');
     
     if (!user) {
+      console.log('用户未找到:', trimmedUsername);
       return res.render('login', { 
         error: '用户名或密码错误',
         user: null,
@@ -72,6 +73,8 @@ router.post('/login', async (req, res) => {
     }
     
     console.log('开始密码验证...');
+    console.log('输入密码长度:', password.length);
+    console.log('存储的密码哈希:', user.password ? '存在' : '不存在');
     
     // 使用安全的密码比较
     const isPasswordCorrect = await bcrypt.compare(password, user.password);
@@ -79,6 +82,7 @@ router.post('/login', async (req, res) => {
     console.log('密码验证结果:', isPasswordCorrect);
     
     if (!isPasswordCorrect) {
+      console.log('密码验证失败');
       return res.render('login', { 
         error: '用户名或密码错误',
         user: null,
@@ -92,6 +96,9 @@ router.post('/login', async (req, res) => {
       id: user._id,
       username: user.username
     };
+    
+    // 更新最后登录时间
+    await User.findByIdAndUpdate(user._id, { lastLogin: new Date() });
     
     console.log(`✅ 用户登录成功: ${user.username}`);
     return res.redirect('/');
@@ -178,7 +185,7 @@ router.post('/register', async (req, res) => {
     });
     
     await user.save();
-    console.log(`✅ 新用户注册成功: ${user.username}`);
+    console.log(`✅ 新用户注册成功: ${user.username}, ID: ${user._id}`);
     
     // 自动登录新用户
     req.session.userId = user._id;
@@ -187,6 +194,7 @@ router.post('/register', async (req, res) => {
       username: user.username
     };
     
+    console.log(`✅ 新用户自动登录成功: ${user.username}`);
     return res.redirect('/');
     
   } catch (error) {
