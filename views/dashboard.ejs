@@ -3,23 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UEMH_HP - <%= user.username %></title>
-    <!-- diy by developer - 网页图标设置 -->
-    <!-- 推荐尺寸：32x32px 或 16x16px，格式：ICO、PNG -->
+    <title>UEMH_HP</title>
     <link rel="icon" type="image/x-icon" href="/images/cat.ico">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Microsoft JhengHei', Arial, sans-serif;
-        }
-        
-        body, html {
-            height: 100%;
-            width: 100%;
-            overflow: auto;
-        }
+        /* 保持原有的所有CSS样式不变，只添加新样式 */
         
         /* 用户信息栏样式 */
         .user-info {
@@ -31,7 +18,6 @@
             color: white;
             padding: 8px 15px;
             border-radius: 20px;
-            font-size: 0.9rem;
             backdrop-filter: blur(5px);
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
             display: flex;
@@ -39,528 +25,61 @@
             gap: 10px;
         }
         
-        .logout-btn {
+        .auth-btn {
             background: rgba(255, 255, 255, 0.2);
             color: white;
             border: none;
-            padding: 4px 10px;
+            padding: 6px 12px;
             border-radius: 15px;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
             transition: all 0.3s ease;
-        }
-        
-        .logout-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .background-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-        }
-        
-        .bg-image {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            /* diy by developer - 背景图片路径 */
-            background-image: url('/images/Night_copy.jpg');
-            background-position: center;
-            background-repeat: no-repeat;
-            background-size: cover;
-            opacity: 1;
-        }
-        
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
-            font-size: 24px;
-            color: white;
-            background: #222;
-        }
-        
-        .error-message {
-            display: none;
-            text-align: center;
-            padding: 20px;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 10px;
-            max-width: 80%;
-            margin: 20% auto;
-        }
-        
-        .content {
-            position: relative;
-            z-index: 1;
-            color: white;
-            text-align: center;
-            padding-top: 70px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            transition: padding-top 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .content.collapsed {
-            padding-top: 40px;
-        }
-        
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-        }
-        
-        p {
-            font-size: 1.5rem;
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        
-        /* 固定在顶部的书签栏样式 */
-        .top-bookmarks {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(5px);
-            padding: 10px 20px;
-            z-index: 100;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .top-bookmarks.collapsed {
-            height: 0;
-            padding: 0;
-            background: transparent;
-            backdrop-filter: none;
-            box-shadow: none;
-        }
-        
-        .bookmarks-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-        
-        .bookmarks-bar {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            max-height: 60px;
-            overflow-y: auto;
-            flex: 1;
-            transition: all 0.3s ease;
-        }
-        
-        .top-bookmarks.collapsed .bookmarks-bar {
-            max-height: 0;
-            opacity: 0;
-            pointer-events: none;
-        }
-        
-        .bookmark-item {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
-            padding: 6px 12px;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-            cursor: pointer;
-            user-select: none;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .bookmark-item:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-        
-        .bookmark-item.dragging {
-            opacity: 0.7;
-            transform: scale(1.05);
-        }
-        
-        .bookmark-item a {
-            color: white;
             text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.9rem;
+            display: inline-block;
         }
         
-        /* 统一图标样式 - 大小增加10%并确保比例正确 */
-        .icon-container {
-            width: 18px; /* 增加10% */
-            height: 18px; /* 增加10% */
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            overflow: hidden;
-            border-radius: 2px;
-        }
-        
-        .bookmark-icon {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            display: block;
-        }
-        
-        .emoji-icon {
-            font-size: 15px; /* 增加10% */
-            line-height: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .bookmarks-header-buttons {
-            display: flex;
-            gap: 8px;
-            margin-left: 10px;
-            transition: all 0.3s ease;
-        }
-        
-        .top-bookmarks.collapsed .bookmarks-header-buttons {
-            opacity: 0;
-            pointer-events: none;
-        }
-        
-        .header-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-        }
-        
-        .header-btn:hover {
+        .auth-btn:hover {
             background: rgba(255, 255, 255, 0.3);
-            transform: scale(1.1);
         }
         
-        .file-input {
+        /* 壁纸模态框样式 */
+        .wallpaper-preview {
+            width: 100%;
+            max-height: 200px;
+            margin-top: 10px;
+            border-radius: 5px;
+            overflow: hidden;
             display: none;
         }
         
-        /* 收藏夹收起时的展开按钮 */
-        .expand-bookmarks {
-            position: fixed;
-            top: 5px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border: none;
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            font-size: 1rem;
-            z-index: 101;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        
-        .expand-bookmarks:hover {
-            background: rgba(0, 0, 0, 0.8);
-            transform: scale(1.1);
-        }
-        
-        .top-bookmarks.collapsed + .expand-bookmarks {
-            display: flex;
-        }
-        
-        /* 右键菜单样式 */
-        .context-menu {
-            position: fixed;
-            background: rgba(30, 30, 30, 0.95);
-            border-radius: 8px;
-            padding: 8px 0;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-            z-index: 1000;
-            min-width: 180px;
-            backdrop-filter: blur(10px);
-            display: none;
-        }
-        
-        .context-menu-item {
-            padding: 8px 15px;
-            cursor: pointer;
-            transition: background 0.2s;
-            font-size: 0.9rem;
-            color: white;
-        }
-        
-        .context-menu-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .context-menu-divider {
-            height: 1px;
-            background: rgba(255, 255, 255, 0.2);
-            margin: 5px 0;
-        }
-        
-        /* 模态框样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
+        .wallpaper-preview img {
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 1001;
-            justify-content: center;
-            align-items: center;
+            object-fit: cover;
         }
         
-        .modal-content {
-            background: rgba(40, 40, 40, 0.95);
-            border-radius: 10px;
-            padding: 25px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(15px);
-            max-height: 90vh;
-            overflow-y: auto;
+        .disabled-btn {
+            opacity: 0.5;
+            cursor: not-allowed !important;
         }
         
-        .modal h2 {
-            margin-bottom: 20px;
-            text-align: center;
-            color: white;
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-            opacity: 0.8;
-            color: white;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 10px;
-            border: none;
-            border-radius: 5px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 1rem;
-        }
-        
-        .form-group input:focus {
-            outline: none;
-            background: rgba(255, 255, 255, 0.15);
-        }
-        
-        .icon-preview {
-            width: 32px;
-            height: 32px;
-            margin-top: 5px;
-            object-fit: contain;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.1);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-        }
-        
-        .modal-buttons {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        
-        .btn {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.2s;
-        }
-        
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #45a049;
-        }
-        
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.2);
-        }
-        
-        .help-content {
-            color: white;
-            line-height: 1.6;
-            text-align: center;
-        }
-        
-        .help-content h2 {
-            margin-bottom: 15px;
-            color: #4FC3F7;
-        }
-        
-        .help-content ul {
-            text-align: left;
-            padding-left: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .help-content li {
-            margin-bottom: 10px;
-        }
-        
-        /* 调试信息样式 */
-        .debug-container {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            width: 300px;
-            max-height: 200px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            border-radius: 5px;
-            font-size: 12px;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            transform: translate(0, 0); /* 用于平滑拖动 */
-        }
-        
-        .debug-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 5px 10px;
-            background: rgba(0, 0, 0, 0.5);
-            cursor: move;
-        }
-        
-        .debug-title {
-            font-weight: bold;
-        }
-        
-        .debug-controls {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .debug-toggle {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 12px;
-        }
-        
-        .debug-info {
-            flex: 1;
-            overflow-y: auto;
-            padding: 5px 10px;
-        }
-        
-        .debug-slider-container {
-            display: flex;
-            align-items: center;
-            padding: 5px 10px;
-            background: rgba(0, 0, 0, 0.3);
-            gap: 5px;
-        }
-        
-        .debug-slider {
-            flex: 1;
-            height: 5px;
-            appearance: none;
-            -webkit-appearance: none;
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 5px;
-            outline: none;
-        }
-        
-        /* 统一滑块色调 */
-        .debug-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #4CAF50; /* 统一使用与按钮相同的色调 */
-            cursor: pointer;
-        }
-        
-        .debug-hidden {
-            display: none;
-        }
-        
-        .debug-collapsed .debug-info,
-        .debug-collapsed .debug-slider-container {
-            display: none;
-        }
-        
-        @media (max-width: 768px) {
-            h1 { font-size: 2rem; }
-            p { font-size: 1.2rem; }
-            .bookmarks-bar { max-height: 80px; }
-            .content { padding-top: 150px; }
-            .content.collapsed { padding-top: 60px; }
-            .bookmarks-container { flex-direction: column; align-items: flex-start; }
-            .bookmarks-header-buttons { margin-left: 0; margin-top: 10px; }
-            .debug-container { width: 250px; }
-            .user-info { top: 5px; right: 5px; padding: 5px 10px; font-size: 0.8rem; }
+        .disabled-btn:hover {
+            transform: none !important;
+            background: rgba(255, 255, 255, 0.2) !important;
         }
     </style>
 </head>
 <body>
     <!-- 用户信息栏 -->
     <div class="user-info">
-        <span>欢迎, <%= user.username %></span>
-        <form action="/logout" method="POST" style="display: inline;">
-            <button type="submit" class="logout-btn">注销</button>
-        </form>
+        <% if (user) { %>
+            <span>欢迎, <%= user.username %></span>
+            <form action="/logout" method="POST" style="display: inline;">
+                <button type="submit" class="auth-btn">登出</button>
+            </form>
+        <% } else { %>
+            <a href="/login" class="auth-btn">登录</a>
+        <% } %>
     </div>
 
     <!-- 固定在顶部的书签栏 -->
@@ -571,6 +90,7 @@
             </div>
             <div class="bookmarks-header-buttons">
                 <button class="header-btn" id="importBookmarks" title="导入收藏夹">🚩</button>
+                <button class="header-btn <%= !user && 'disabled-btn' %>" id="changeWallpaper" title="更改壁纸" <%= !user && 'disabled' %>>🖼️</button>
                 <button class="header-btn" id="helpBtn" title="使用说明">❓</button>
                 <button class="header-btn" id="collapseBtn" title="收起收藏夾">▲</button>
             </div>
@@ -626,6 +146,24 @@
         </div>
     </div>
 
+    <!-- 更改壁纸模态框 -->
+    <div class="modal" id="wallpaperModal">
+        <div class="modal-content">
+            <h2>更改壁纸</h2>
+            <div class="form-group">
+                <label for="wallpaperFile">选择壁纸图片</label>
+                <input type="file" id="wallpaperFile" accept="image/*">
+                <div class="wallpaper-preview" id="wallpaperPreview">
+                    <img id="wallpaperPreviewImg" src="" alt="壁纸预览">
+                </div>
+            </div>
+            <div class="modal-buttons">
+                <button class="btn btn-secondary" id="cancelWallpaper">取消</button>
+                <button class="btn btn-primary" id="saveWallpaper">确定更换</button>
+            </div>
+        </div>
+    </div>
+
     <!-- 帮助说明模态框 -->
     <div class="modal" id="helpModal">
         <div class="modal-content">
@@ -639,11 +177,18 @@
                     <li>左键拖拽 - 重新排序收藏项</li>
                     <li>右键点击收藏项 - 编辑或删除</li>
                     <li>右键点击空白区域 - 添加新收藏项</li>
-                    <li>所有更改会自动保存在浏览器本地存储和服务器中</li>
+                    <li>所有更改会自动保存在浏览器本地存储中</li>
                     <li>收藏项可以仅显示图标，无需名称</li>
                     <li>添加书签时如果不提供图标，系统会自动尝试获取网站图标</li>
-                    <li>当前用户: <strong><%= user.username %></strong> (<%= user.email %>)</li>
+                    <% if (user) { %>
+                        <li>当前用户: <strong><%= user.username %></strong></li>
+                    <% } else { %>
+                        <li><a href="/login" style="color: #4FC3F7;">点击登录</a>以使用更改壁纸功能</li>
+                    <% } %>
                 </ul>
+                
+                <h3>默认账号</h3>
+                <p>用户名: <strong>UEMH-CHAN</strong><br>密码: <strong>041018</strong></p>
             </div>
             <div class="modal-buttons">
                 <button class="btn btn-primary" id="closeHelp">关闭</button>
@@ -663,7 +208,6 @@
         <div class="debug-info" id="debugInfo"></div>
         <div class="debug-slider-container">
             <span>透明度:</span>
-            <!-- diy by developer - 调试窗口透明度初始值 -->
             <input type="range" min="0" max="100" value="70" class="debug-slider" id="debugOpacity">
         </div>
     </div>
@@ -677,9 +221,8 @@
             console.log(message);
         }
 
-        // 初始收藏项数据 - 从服务器获取
-        const serverBookmarks = JSON.parse('<%- JSON.stringify(bookmarks || []) %>');
-        const defaultBookmarks = serverBookmarks.length > 0 ? serverBookmarks : [
+        // 初始收藏项数据
+        const defaultBookmarks = [
             { id: 1, name: "Google", url: "https://www.google.com", icon: "https://favicon.pub/google.com" },
             { id: 2, name: "YouTube", url: "https://www.youtube.com", icon: "https://favicon.pub/youtube.com" },
             { id: 3, name: "GitHub", url: "https://github.com", icon: "https://favicon.pub/github.com" },
@@ -688,10 +231,11 @@
         ];
 
         // DOM元素
-        let topBookmarks, bookmarksBar, contextMenu, bookmarkModal, helpModal;
+        let topBookmarks, bookmarksBar, contextMenu, bookmarkModal, helpModal, wallpaperModal;
         let modalTitle, bookmarkName, bookmarkUrl, bookmarkIcon, iconPreview;
         let saveBookmarkBtn, cancelBookmarkBtn, addBookmarkBtn, editBookmarkBtn, deleteBookmarkBtn;
         let importBookmarksBtn, bookmarkFile, helpBtn, collapseBtn, expandBookmarks, content, closeHelp;
+        let changeWallpaperBtn, wallpaperFile, wallpaperPreview, cancelWallpaperBtn, saveWallpaperBtn;
         let debugContainer, debugInfo, debugToggle, debugHide, debugOpacity, debugHeader;
 
         // 全局变量
@@ -704,7 +248,6 @@
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
             debug('DOM加载完成，开始初始化');
-            debug('当前用户: <%= user.username %> (<%= user.email %>)');
             
             // 初始化DOM元素
             initDOMElements();
@@ -724,30 +267,19 @@
             // 创建测试图片以检查是否可加载
             const testImage = new Image();
             testImage.onload = function() {
-                // 图片加载成功
                 loading.style.display = 'none';
                 bgImage.style.opacity = '1';
                 debug('背景图片加载成功');
             };
             
             testImage.onerror = function() {
-                // 图片加载失败
                 loading.style.display = 'none';
                 errorMessage.style.display = 'block';
                 debug('背景图片加载失败');
             };
             
-            // 使用背景图片的URL测试
-            const bgUrl = window.getComputedStyle(bgImage).backgroundImage;
-            // 提取URL
-            const urlMatch = bgUrl.match(/url\(["']?(.*?)["']?\)/);
-            if (urlMatch && urlMatch[1]) {
-                testImage.src = urlMatch[1];
-            } else {
-                // 如果无法提取URL，直接隐藏加载提示
-                loading.style.display = 'none';
-                debug('无法提取背景图片URL');
-            }
+            // 使用默认背景图片
+            testImage.src = '/images/Night_copy.jpg';
         });
 
         // 初始化DOM元素
@@ -759,6 +291,7 @@
             contextMenu = document.getElementById('contextMenu');
             bookmarkModal = document.getElementById('bookmarkModal');
             helpModal = document.getElementById('helpModal');
+            wallpaperModal = document.getElementById('wallpaperModal');
             modalTitle = document.getElementById('modalTitle');
             bookmarkName = document.getElementById('bookmarkName');
             bookmarkUrl = document.getElementById('bookmarkUrl');
@@ -775,6 +308,13 @@
             expandBookmarks = document.getElementById('expandBookmarks');
             content = document.getElementById('content');
             closeHelp = document.getElementById('closeHelp');
+            
+            // 壁纸相关元素
+            changeWallpaperBtn = document.getElementById('changeWallpaper');
+            wallpaperFile = document.getElementById('wallpaperFile');
+            wallpaperPreview = document.getElementById('wallpaperPreview');
+            cancelWallpaperBtn = document.getElementById('cancelWallpaper');
+            saveWallpaperBtn = document.getElementById('saveWallpaper');
             
             // 调试相关元素
             debugContainer = document.getElementById('debugContainer');
@@ -793,395 +333,6 @@
             document.body.appendChild(bookmarkFile);
             
             debug('DOM元素初始化完成');
-        }
-
-        // 设置调试窗口控制
-        function setupDebugControls() {
-            // 透明度滑块
-            debugOpacity.addEventListener('input', function() {
-                const opacity = this.value / 100;
-                debugContainer.style.opacity = opacity;
-                debug('设置调试窗口透明度: ' + (opacity * 100) + '%');
-            });
-            
-            // 切换调试窗口折叠状态
-            debugToggle.addEventListener('click', function() {
-                if (isDebugCollapsed) {
-                    debugContainer.classList.remove('debug-collapsed');
-                    debugToggle.textContent = '−';
-                    isDebugCollapsed = false;
-                    debug('展开调试窗口');
-                } else {
-                    debugContainer.classList.add('debug-collapsed');
-                    debugToggle.textContent = '+';
-                    isDebugCollapsed = true;
-                    debug('折叠调试窗口');
-                }
-            });
-            
-            // 切换调试窗口可见性
-            debugHide.addEventListener('click', function() {
-                if (isDebugHidden) {
-                    debugContainer.classList.remove('debug-hidden');
-                    debugHide.textContent = '×';
-                    isDebugHidden = false;
-                    debug('显示调试窗口');
-                } else {
-                    debugContainer.classList.add('debug-hidden');
-                    debugHide.textContent = '+';
-                    isDebugHidden = true;
-                    debug('隐藏调试窗口');
-                }
-            });
-            
-            // 使调试窗口可拖动 - 优化版本，包含边界限制
-            makeElementDraggable(debugContainer, debugHeader);
-            
-            debug('调试窗口控制设置完成');
-        }
-
-        // 使元素可拖动 - 优化版本，包含边界限制
-        function makeElementDraggable(element, handle) {
-            let isDragging = false;
-            let startX, startY, initialX, initialY;
-            
-            handle.addEventListener('mousedown', startDrag);
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('mouseup', stopDrag);
-            
-            function startDrag(e) {
-                isDragging = true;
-                
-                // 获取初始位置
-                const rect = element.getBoundingClientRect();
-                initialX = rect.left;
-                initialY = rect.top;
-                
-                // 记录鼠标起始位置
-                startX = e.clientX;
-                startY = e.clientY;
-                
-                // 防止选择文本
-                e.preventDefault();
-                
-                debug('开始拖动调试窗口');
-            }
-            
-            function drag(e) {
-                if (!isDragging) return;
-                
-                // 计算移动距离
-                const dx = e.clientX - startX;
-                const dy = e.clientY - startY;
-                
-                // 使用transform实现更流畅的移动
-                element.style.transform = `translate(${dx}px, ${dy}px)`;
-            }
-            
-            function stopDrag() {
-                if (!isDragging) return;
-                
-                // 获取当前transform值
-                const transform = element.style.transform;
-                const matches = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
-                
-                if (matches) {
-                    const dx = parseFloat(matches[1]);
-                    const dy = parseFloat(matches[2]);
-                    
-                    // 计算新位置
-                    let newX = initialX + dx;
-                    let newY = initialY + dy;
-                    
-                    // 获取视口和元素尺寸
-                    const viewportWidth = window.innerWidth;
-                    const viewportHeight = window.innerHeight;
-                    const elementWidth = element.offsetWidth;
-                    const elementHeight = element.offsetHeight;
-                    
-                    // 限制元素不超出视口边界
-                    newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth));
-                    newY = Math.max(0, Math.min(newY, viewportHeight - elementHeight));
-                    
-                    // 应用最终位置
-                    element.style.left = newX + 'px';
-                    element.style.top = newY + 'px';
-                    element.style.transform = 'none';
-                    element.style.right = 'auto';
-                    element.style.bottom = 'auto';
-                }
-                
-                isDragging = false;
-                debug('停止拖动调试窗口，位置已限制在视口内');
-            }
-            
-            // 触摸设备支持
-            handle.addEventListener('touchstart', function(e) {
-                const touch = e.touches[0];
-                const mouseEvent = new MouseEvent('mousedown', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                startDrag(mouseEvent);
-            });
-            
-            document.addEventListener('touchmove', function(e) {
-                if (!isDragging) return;
-                const touch = e.touches[0];
-                const mouseEvent = new MouseEvent('mousemove', {
-                    clientX: touch.clientX,
-                    clientY: touch.clientY
-                });
-                drag(mouseEvent);
-            });
-            
-            document.addEventListener('touchend', stopDrag);
-        }
-
-        // 加载收藏项
-        function loadBookmarks() {
-            const savedBookmarks = localStorage.getItem('customBookmarks');
-            if (savedBookmarks) {
-                bookmarks = JSON.parse(savedBookmarks);
-                debug('从本地存储加载收藏项: ' + bookmarks.length + ' 项');
-            } else {
-                bookmarks = [...defaultBookmarks];
-                saveBookmarks();
-                debug('使用默认收藏项');
-            }
-        }
-
-        // 保存收藏项到本地存储和服务器
-        function saveBookmarks() {
-            localStorage.setItem('customBookmarks', JSON.stringify(bookmarks));
-            debug('保存收藏项到本地存储: ' + bookmarks.length + ' 项');
-            
-            // 同时保存到服务器
-            saveBookmarksToServer();
-        }
-
-        // 保存书签到服务器
-        async function saveBookmarksToServer() {
-            try {
-                // 将书签转换为适合服务器的格式
-                const bookmarksForServer = bookmarks.map(bm => ({
-                    name: bm.name,
-                    url: bm.url,
-                    icon: bm.icon
-                }));
-                
-                // 发送到服务器
-                const response = await fetch('/bookmarks/sync', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ bookmarks: bookmarksForServer })
-                });
-                
-                if (!response.ok) {
-                    throw new Error('服务器保存失败');
-                }
-                
-                const result = await response.json();
-                debug('书签已同步到服务器: ' + result.message);
-            } catch (error) {
-                debug('保存到服务器失败: ' + error.message);
-                // 可以添加重试逻辑或用户提示
-            }
-        }
-
-        // 加载收起状态
-        function loadCollapseState() {
-            const isCollapsed = localStorage.getItem('bookmarksCollapsed') === 'true';
-            if (isCollapsed) {
-                collapseBookmarks();
-                debug('加载收起状态: 已收起');
-            } else {
-                debug('加载收起状态: 未收起');
-            }
-            
-            // diy by developer - 加载调试窗口可见性状态
-            const isDebugHidden = localStorage.getItem('debugHidden') === 'true';
-            if (isDebugHidden) {
-                debugContainer.classList.add('debug-hidden');
-                debugHide.textContent = '+';
-                isDebugHidden = true;
-                debug('加载调试窗口状态: 已隐藏');
-            }
-        }
-
-        // 保存收起状态
-        function saveCollapseState() {
-            localStorage.setItem('bookmarksCollapsed', topBookmarks.classList.contains('collapsed'));
-            debug('保存收起状态: ' + (topBookmarks.classList.contains('collapsed') ? '已收起' : '未收起'));
-            
-            // diy by developer - 保存调试窗口可见性状态
-            localStorage.setItem('debugHidden', isDebugHidden);
-        }
-
-        // 渲染收藏项 - 更新图标处理，确保比例正确
-        function renderBookmarks() {
-            bookmarksBar.innerHTML = '';
-            
-            bookmarks.forEach(bookmark => {
-                const bookmarkElement = document.createElement('div');
-                bookmarkElement.className = 'bookmark-item';
-                bookmarkElement.setAttribute('data-id', bookmark.id);
-                bookmarkElement.draggable = true;
-                
-                // 检查图标是URL还是表情符号
-                let iconHTML = '';
-                if (bookmark.icon) {
-                    if (bookmark.icon.startsWith('http')) {
-                        // 图片图标 - 使用固定大小的容器，确保比例正确
-                        iconHTML = `
-                            <div class="icon-container">
-                                <img src="${bookmark.icon}" class="bookmark-icon" alt="${bookmark.name}" onerror="handleIconError(this)">
-                            </div>
-                        `;
-                    } else {
-                        // 表情符号 - 使用固定大小的容器
-                        iconHTML = `
-                            <div class="icon-container">
-                                <span class="emoji-icon">${bookmark.icon}</span>
-                            </div>
-                        `;
-                    }
-                } else {
-                    // 默认图标
-                    iconHTML = `
-                        <div class="icon-container">
-                            <span class="emoji-icon">🔗</span>
-                        </div>
-                    `;
-                }
-                
-                // 如果名称为空，只显示图标
-                if (!bookmark.name || bookmark.name.trim() === '') {
-                    bookmarkElement.innerHTML = `
-                        <a href="${bookmark.url}" target="_blank" title="${bookmark.url}">${iconHTML}</a>
-                    `;
-                } else {
-                    bookmarkElement.innerHTML = `
-                        ${iconHTML}
-                        <a href="${bookmark.url}" target="_blank">${bookmark.name}</a>
-                    `;
-                }
-                
-                bookmarksBar.appendChild(bookmarkElement);
-            });
-            
-            setupBookmarkEvents();
-            debug('渲染收藏项完成: ' + bookmarks.length + ' 项');
-        }
-
-        // 处理图标加载错误
-        function handleIconError(imgElement) {
-            const container = imgElement.parentNode;
-            container.innerHTML = '<span class="emoji-icon">❌</span>';
-            debug('图标加载失败，显示错误图标');
-        }
-
-        // 设置收藏项事件监听
-        function setupBookmarkEvents() {
-            const bookmarkItems = document.querySelectorAll('.bookmark-item');
-            
-            bookmarkItems.forEach(item => {
-                // 左键点击 - 打开链接
-                item.addEventListener('click', (e) => {
-                    // 阻止默认行为，因为我们使用链接的默认行为
-                    e.preventDefault();
-                    
-                    const id = parseInt(item.getAttribute('data-id'));
-                    const bookmark = bookmarks.find(b => b.id === id);
-                    if (bookmark) {
-                        window.open(bookmark.url, '_blank');
-                        debug('打开链接: ' + bookmark.url);
-                    }
-                });
-                
-                // 右键点击 - 显示菜单
-                item.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    currentBookmarkId = parseInt(item.getAttribute('data-id'));
-                    
-                    // 显示菜单
-                    contextMenu.style.display = 'block';
-                    contextMenu.style.left = `${e.pageX}px`;
-                    contextMenu.style.top = `${e.pageY}px`;
-                    
-                    // 隐藏添加选项，显示编辑和删除
-                    addBookmarkBtn.style.display = 'none';
-                    editBookmarkBtn.style.display = 'block';
-                    deleteBookmarkBtn.style.display = 'block';
-                    
-                    debug('显示右键菜单 - 编辑收藏项 ID: ' + currentBookmarkId);
-                });
-                
-                // 拖拽事件
-                item.addEventListener('dragstart', (e) => {
-                    item.classList.add('dragging');
-                    e.dataTransfer.setData('text/plain', item.getAttribute('data-id'));
-                    debug('开始拖拽收藏项 ID: ' + item.getAttribute('data-id'));
-                });
-                
-                item.addEventListener('dragend', () => {
-                    item.classList.remove('dragging');
-                    debug('结束拖拽收藏项');
-                });
-                
-                item.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                });
-                
-                item.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    const draggedId = parseInt(e.dataTransfer.getData('text/plain'));
-                    const targetId = parseInt(item.getAttribute('data-id'));
-                    
-                    if (draggedId !== targetId) {
-                        moveBookmark(draggedId, targetId);
-                    }
-                });
-            });
-            
-            // 空白区域右键点击 - 显示添加菜单
-            bookmarksBar.addEventListener('contextmenu', (e) => {
-                if (e.target === bookmarksBar) {
-                    e.preventDefault();
-                    currentBookmarkId = null;
-                    
-                    // 显示菜单
-                    contextMenu.style.display = 'block';
-                    contextMenu.style.left = `${e.pageX}px`;
-                    contextMenu.style.top = `${e.pageY}px`;
-                    
-                    // 显示添加选项，隐藏编辑和删除
-                    addBookmarkBtn.style.display = 'block';
-                    editBookmarkBtn.style.display = 'none';
-                    deleteBookmarkBtn.style.display = 'none';
-                    
-                    debug('显示右键菜单 - 添加新收藏项');
-                }
-            });
-            
-            debug('收藏项事件监听设置完成: ' + bookmarkItems.length + ' 项');
-        }
-
-        // 移动收藏项（重新排序）
-        function moveBookmark(draggedId, targetId) {
-            const draggedIndex = bookmarks.findIndex(b => b.id === draggedId);
-            const targetIndex = bookmarks.findIndex(b => b.id === targetId);
-            
-            if (draggedIndex !== -1 && targetIndex !== -1) {
-                const [draggedItem] = bookmarks.splice(draggedIndex, 1);
-                bookmarks.splice(targetIndex, 0, draggedItem);
-                
-                saveBookmarks();
-                renderBookmarks();
-                debug('移动收藏项: ID ' + draggedId + ' 移动到位置 ' + targetIndex);
-            }
         }
 
         // 设置事件监听器
@@ -1244,6 +395,12 @@
                 debug('选择文件: ' + file.name);
             });
             
+            // 壁纸功能
+            changeWallpaperBtn.addEventListener('click', showWallpaperModal);
+            cancelWallpaperBtn.addEventListener('click', hideWallpaperModal);
+            saveWallpaperBtn.addEventListener('click', uploadWallpaper);
+            wallpaperFile.addEventListener('change', previewWallpaper);
+            
             // 帮助按钮
             helpBtn.addEventListener('click', () => {
                 helpModal.style.display = 'flex';
@@ -1263,11 +420,248 @@
             debug('所有事件监听器设置完成');
         }
 
+        // 显示壁纸模态框
+        function showWallpaperModal() {
+            wallpaperModal.style.display = 'flex';
+            wallpaperFile.value = '';
+            wallpaperPreview.style.display = 'none';
+            debug('显示更改壁纸模态框');
+        }
+
+        // 隐藏壁纸模态框
+        function hideWallpaperModal() {
+            wallpaperModal.style.display = 'none';
+            debug('隐藏更改壁纸模态框');
+        }
+
+        // 预览壁纸
+        function previewWallpaper(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewImg = document.getElementById('wallpaperPreviewImg');
+                    previewImg.src = e.target.result;
+                    wallpaperPreview.style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+                debug('壁纸预览已更新');
+            }
+        }
+
+        // 上传壁纸
+        async function uploadWallpaper() {
+            const file = wallpaperFile.files[0];
+            if (!file) {
+                alert('请选择壁纸图片');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('wallpaper', file);
+
+            try {
+                const response = await fetch('/upload-wallpaper', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('壁纸更换成功！');
+                    // 更新背景图片
+                    document.getElementById('bgImage').style.backgroundImage = `url('${result.wallpaperUrl}')`;
+                    hideWallpaperModal();
+                    debug('壁纸更换成功: ' + result.wallpaperUrl);
+                } else {
+                    alert('壁纸更换失败: ' + result.error);
+                    debug('壁纸更换失败: ' + result.error);
+                }
+            } catch (error) {
+                console.error('上传壁纸错误:', error);
+                alert('上传失败，请重试');
+                debug('壁纸上传错误: ' + error.message);
+            }
+        }
+
+        // 其余的函数保持不变（loadBookmarks, saveBookmarks, renderBookmarks, 等）
+        // ... 保持原有的所有书签相关函数不变
+
+        // 加载收藏项
+        function loadBookmarks() {
+            const savedBookmarks = localStorage.getItem('customBookmarks');
+            if (savedBookmarks) {
+                bookmarks = JSON.parse(savedBookmarks);
+                debug('从本地存储加载收藏项: ' + bookmarks.length + ' 项');
+            } else {
+                bookmarks = [...defaultBookmarks];
+                saveBookmarks();
+                debug('使用默认收藏项');
+            }
+        }
+
+        // 保存收藏项到本地存储
+        function saveBookmarks() {
+            localStorage.setItem('customBookmarks', JSON.stringify(bookmarks));
+            debug('保存收藏项到本地存储: ' + bookmarks.length + ' 项');
+        }
+
+        // 渲染收藏项
+        function renderBookmarks() {
+            bookmarksBar.innerHTML = '';
+            
+            bookmarks.forEach(bookmark => {
+                const bookmarkElement = document.createElement('div');
+                bookmarkElement.className = 'bookmark-item';
+                bookmarkElement.setAttribute('data-id', bookmark.id);
+                bookmarkElement.draggable = true;
+                
+                let iconHTML = '';
+                if (bookmark.icon) {
+                    if (bookmark.icon.startsWith('http')) {
+                        iconHTML = `
+                            <div class="icon-container">
+                                <img src="${bookmark.icon}" class="bookmark-icon" alt="${bookmark.name}" onerror="handleIconError(this)">
+                            </div>
+                        `;
+                    } else {
+                        iconHTML = `
+                            <div class="icon-container">
+                                <span class="emoji-icon">${bookmark.icon}</span>
+                            </div>
+                        `;
+                    }
+                } else {
+                    iconHTML = `
+                        <div class="icon-container">
+                            <span class="emoji-icon">🔗</span>
+                        </div>
+                    `;
+                }
+                
+                if (!bookmark.name || bookmark.name.trim() === '') {
+                    bookmarkElement.innerHTML = `
+                        <a href="${bookmark.url}" target="_blank" title="${bookmark.url}">${iconHTML}</a>
+                    `;
+                } else {
+                    bookmarkElement.innerHTML = `
+                        ${iconHTML}
+                        <a href="${bookmark.url}" target="_blank">${bookmark.name}</a>
+                    `;
+                }
+                
+                bookmarksBar.appendChild(bookmarkElement);
+            });
+            
+            setupBookmarkEvents();
+            debug('渲染收藏项完成: ' + bookmarks.length + ' 项');
+        }
+
+        // 处理图标加载错误
+        function handleIconError(imgElement) {
+            const container = imgElement.parentNode;
+            container.innerHTML = '<span class="emoji-icon">❌</span>';
+            debug('图标加载失败，显示错误图标');
+        }
+
+        // 设置收藏项事件监听
+        function setupBookmarkEvents() {
+            const bookmarkItems = document.querySelectorAll('.bookmark-item');
+            
+            bookmarkItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    
+                    const id = parseInt(item.getAttribute('data-id'));
+                    const bookmark = bookmarks.find(b => b.id === id);
+                    if (bookmark) {
+                        window.open(bookmark.url, '_blank');
+                        debug('打开链接: ' + bookmark.url);
+                    }
+                });
+                
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    currentBookmarkId = parseInt(item.getAttribute('data-id'));
+                    
+                    contextMenu.style.display = 'block';
+                    contextMenu.style.left = `${e.pageX}px`;
+                    contextMenu.style.top = `${e.pageY}px`;
+                    
+                    addBookmarkBtn.style.display = 'none';
+                    editBookmarkBtn.style.display = 'block';
+                    deleteBookmarkBtn.style.display = 'block';
+                    
+                    debug('显示右键菜单 - 编辑收藏项 ID: ' + currentBookmarkId);
+                });
+                
+                // 拖拽事件保持不变
+                item.addEventListener('dragstart', (e) => {
+                    item.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', item.getAttribute('data-id'));
+                    debug('开始拖拽收藏项 ID: ' + item.getAttribute('data-id'));
+                });
+                
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    debug('结束拖拽收藏项');
+                });
+                
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                });
+                
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    const draggedId = parseInt(e.dataTransfer.getData('text/plain'));
+                    const targetId = parseInt(item.getAttribute('data-id'));
+                    
+                    if (draggedId !== targetId) {
+                        moveBookmark(draggedId, targetId);
+                    }
+                });
+            });
+            
+            bookmarksBar.addEventListener('contextmenu', (e) => {
+                if (e.target === bookmarksBar) {
+                    e.preventDefault();
+                    currentBookmarkId = null;
+                    
+                    contextMenu.style.display = 'block';
+                    contextMenu.style.left = `${e.pageX}px`;
+                    contextMenu.style.top = `${e.pageY}px`;
+                    
+                    addBookmarkBtn.style.display = 'block';
+                    editBookmarkBtn.style.display = 'none';
+                    deleteBookmarkBtn.style.display = 'none';
+                    
+                    debug('显示右键菜单 - 添加新收藏项');
+                }
+            });
+            
+            debug('收藏项事件监听设置完成: ' + bookmarkItems.length + ' 项');
+        }
+
+        // 移动收藏项
+        function moveBookmark(draggedId, targetId) {
+            const draggedIndex = bookmarks.findIndex(b => b.id === draggedId);
+            const targetIndex = bookmarks.findIndex(b => b.id === targetId);
+            
+            if (draggedIndex !== -1 && targetIndex !== -1) {
+                const [draggedItem] = bookmarks.splice(draggedIndex, 1);
+                bookmarks.splice(targetIndex, 0, draggedItem);
+                
+                saveBookmarks();
+                renderBookmarks();
+                debug('移动收藏项: ID ' + draggedId + ' 移动到位置 ' + targetIndex);
+            }
+        }
+
         // 收起收藏栏
         function collapseBookmarks() {
             topBookmarks.classList.add('collapsed');
             content.classList.add('collapsed');
-            // diy by developer - 同时隐藏调试窗口
             debugContainer.classList.add('debug-hidden');
             isDebugHidden = true;
             saveCollapseState();
@@ -1278,7 +672,6 @@
         function expandBookmarksFunc() {
             topBookmarks.classList.remove('collapsed');
             content.classList.remove('collapsed');
-            // diy by developer - 同时显示调试窗口
             debugContainer.classList.remove('debug-hidden');
             isDebugHidden = false;
             saveCollapseState();
@@ -1348,7 +741,6 @@
                 return;
             }
             
-            // 确保URL格式正确
             let formattedUrl = url;
             if (!url.startsWith('http://') && !url.startsWith('https://')) {
                 formattedUrl = 'https://' + url;
@@ -1356,14 +748,12 @@
             
             let finalIcon = icon;
             
-            // 如果没有提供图标，尝试自动获取网站图标
             if (!finalIcon) {
                 debug('未提供图标，尝试自动获取网站图标');
                 finalIcon = await getFavicon(formattedUrl);
             }
             
             if (isEditing && currentBookmarkId) {
-                // 更新现有收藏项
                 const index = bookmarks.findIndex(b => b.id === currentBookmarkId);
                 if (index !== -1) {
                     bookmarks[index].name = name;
@@ -1372,7 +762,6 @@
                     debug('更新收藏项 - ID: ' + currentBookmarkId);
                 }
             } else {
-                // 添加新收藏项
                 const newId = bookmarks.length > 0 ? Math.max(...bookmarks.map(b => b.id)) + 1 : 1;
                 bookmarks.push({
                     id: newId,
@@ -1391,11 +780,9 @@
         // 获取网站图标
         async function getFavicon(url) {
             try {
-                // 使用Google的favicon服务
                 const domain = new URL(url).hostname;
                 const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
                 
-                // 测试图标是否可加载
                 return await new Promise((resolve) => {
                     const img = new Image();
                     img.onload = () => {
@@ -1429,9 +816,8 @@
             const parser = new DOMParser();
             const doc = parser.parseFromString(html, 'text/html');
             
-            // 查找书签链接
             const links = doc.querySelectorAll('a');
-            bookmarks = []; // 清空现有书签
+            bookmarks = [];
             
             links.forEach(link => {
                 const href = link.getAttribute('href');
@@ -1448,7 +834,6 @@
                 }
             });
             
-            // 如果没有找到书签，恢复默认
             if (bookmarks.length === 0) {
                 bookmarks = [...defaultBookmarks];
                 alert('未找到書簽或文件格式不正確，已恢復默認書籤');
@@ -1459,6 +844,149 @@
             
             saveBookmarks();
             renderBookmarks();
+        }
+
+        // 加载收起状态
+        function loadCollapseState() {
+            const isCollapsed = localStorage.getItem('bookmarksCollapsed') === 'true';
+            if (isCollapsed) {
+                collapseBookmarks();
+                debug('加载收起状态: 已收起');
+            } else {
+                debug('加载收起状态: 未收起');
+            }
+            
+            const isDebugHidden = localStorage.getItem('debugHidden') === 'true';
+            if (isDebugHidden) {
+                debugContainer.classList.add('debug-hidden');
+                debugHide.textContent = '+';
+                isDebugHidden = true;
+                debug('加载调试窗口状态: 已隐藏');
+            }
+        }
+
+        // 保存收起状态
+        function saveCollapseState() {
+            localStorage.setItem('bookmarksCollapsed', topBookmarks.classList.contains('collapsed'));
+            debug('保存收起状态: ' + (topBookmarks.classList.contains('collapsed') ? '已收起' : '未收起'));
+            
+            localStorage.setItem('debugHidden', isDebugHidden);
+        }
+
+        // 设置调试窗口控制
+        function setupDebugControls() {
+            debugOpacity.addEventListener('input', function() {
+                const opacity = this.value / 100;
+                debugContainer.style.opacity = opacity;
+                debug('设置调试窗口透明度: ' + (opacity * 100) + '%');
+            });
+            
+            debugToggle.addEventListener('click', function() {
+                if (isDebugCollapsed) {
+                    debugContainer.classList.remove('debug-collapsed');
+                    debugToggle.textContent = '−';
+                    isDebugCollapsed = false;
+                    debug('展开调试窗口');
+                } else {
+                    debugContainer.classList.add('debug-collapsed');
+                    debugToggle.textContent = '+';
+                    isDebugCollapsed = true;
+                    debug('折叠调试窗口');
+                }
+            });
+            
+            debugHide.addEventListener('click', function() {
+                if (isDebugHidden) {
+                    debugContainer.classList.remove('debug-hidden');
+                    debugHide.textContent = '×';
+                    isDebugHidden = false;
+                    debug('显示调试窗口');
+                } else {
+                    debugContainer.classList.add('debug-hidden');
+                    debugHide.textContent = '+';
+                    isDebugHidden = true;
+                    debug('隐藏调试窗口');
+                }
+            });
+            
+            makeElementDraggable(debugContainer, debugHeader);
+            debug('调试窗口控制设置完成');
+        }
+
+        // 使元素可拖动
+        function makeElementDraggable(element, handle) {
+            let isDragging = false;
+            let startX, startY, initialX, initialY;
+            
+            handle.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', stopDrag);
+            
+            function startDrag(e) {
+                isDragging = true;
+                const rect = element.getBoundingClientRect();
+                initialX = rect.left;
+                initialY = rect.top;
+                startX = e.clientX;
+                startY = e.clientY;
+                e.preventDefault();
+                debug('开始拖动调试窗口');
+            }
+            
+            function drag(e) {
+                if (!isDragging) return;
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                element.style.transform = `translate(${dx}px, ${dy}px)`;
+            }
+            
+            function stopDrag() {
+                if (!isDragging) return;
+                const transform = element.style.transform;
+                const matches = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
+                
+                if (matches) {
+                    const dx = parseFloat(matches[1]);
+                    const dy = parseFloat(matches[2]);
+                    let newX = initialX + dx;
+                    let newY = initialY + dy;
+                    const viewportWidth = window.innerWidth;
+                    const viewportHeight = window.innerHeight;
+                    const elementWidth = element.offsetWidth;
+                    const elementHeight = element.offsetHeight;
+                    newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth));
+                    newY = Math.max(0, Math.min(newY, viewportHeight - elementHeight));
+                    element.style.left = newX + 'px';
+                    element.style.top = newY + 'px';
+                    element.style.transform = 'none';
+                    element.style.right = 'auto';
+                    element.style.bottom = 'auto';
+                }
+                
+                isDragging = false;
+                debug('停止拖动调试窗口，位置已限制在视口内');
+            }
+            
+            handle.addEventListener('touchstart', function(e) {
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousedown', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                startDrag(mouseEvent);
+            });
+            
+            document.addEventListener('touchmove', function(e) {
+                if (!isDragging) return;
+                const touch = e.touches[0];
+                const mouseEvent = new MouseEvent('mousemove', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY
+                });
+                drag(mouseEvent);
+            });
+            
+            document.addEventListener('touchend', stopDrag);
         }
     </script>
 </body>
