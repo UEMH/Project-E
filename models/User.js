@@ -1,19 +1,18 @@
 const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
   username: {
     type: String,
-    required: [true, '用户名不能为空'],
+    required: true,
     unique: true,
     trim: true,
-    minlength: [3, '用户名至少3个字符'],
-    maxlength: [30, '用户名不能超过30个字符']
+    minlength: 3,
+    maxlength: 30
   },
   password: {
     type: String,
-    required: [true, '密码不能为空'],
-    minlength: [6, '密码至少6个字符']
+    required: true,
+    minlength: 6
   },
   createdAt: {
     type: Date,
@@ -21,29 +20,6 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-// 密码加密中间件
-userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
-  
-  try {
-    const salt = await bcrypt.genSalt(12);
-    this.password = await bcrypt.hash(this.password, salt);
-    next();
-  } catch (error) {
-    next(error);
-  }
-});
-
-// 密码验证方法
-userSchema.methods.correctPassword = async function(candidatePassword, userPassword) {
-  return await bcrypt.compare(candidatePassword, userPassword);
-};
-
-// 移除密码字段从JSON输出
-userSchema.methods.toJSON = function() {
-  const user = this.toObject();
-  delete user.password;
-  return user;
-};
+// 移除 correctPassword 方法，因为我们在 auth.js 中直接使用 bcrypt
 
 module.exports = mongoose.model('User', userSchema);
