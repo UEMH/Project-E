@@ -8,6 +8,11 @@
     <style>
         body {
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
         }
     </style>
 </head>
@@ -16,12 +21,14 @@
         <h1>用户登录</h1>
         
         <!-- 数据库连接状态提示 -->
+        <% if (!dbConnected) { %>
         <div class="database-status">
             <p style="margin: 0; color: #856404; font-size: 0.9rem;">
-                ⚠️ 当前运行在离线模式<br>
-                仅支持默认管理员账号登录
+                ❌ 数据库连接失败<br>
+                无法登录，请检查数据库连接
             </p>
         </div>
+        <% } %>
         
         <% if (error) { %>
             <div class="error"><%= error %></div>
@@ -36,7 +43,7 @@
                 <label for="password">密码:</label>
                 <input type="password" id="password" name="password" required value="041018">
             </div>
-            <button type="submit">登录</button>
+            <button type="submit" <%= !dbConnected && 'disabled' %>>登录</button>
         </form>
         
         <div class="links">
@@ -51,11 +58,13 @@
             </p>
         </div>
         
+        <% if (!dbConnected) { %>
         <div class="offline-info">
-            <p style="margin: 0; font-size: 0.8rem; color: #0066cc;">
-                💡 提示: 当前为离线模式，登录后可查看页面效果，但部分功能可能受限
+            <p style="margin: 0; font-size: 0.8rem; color: #dc3545;">
+                ⚠️ 系统暂时无法使用，数据库连接异常
             </p>
         </div>
+        <% } %>
     </div>
 </body>
 </html>
