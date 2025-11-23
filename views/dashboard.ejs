@@ -32,10 +32,16 @@
             border-radius: 15px;
             font-size: 0.8rem;
             backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
         }
         
         .database-status.connected {
             background: rgba(46, 204, 113, 0.9);
+        }
+        
+        .database-status.hidden {
+            opacity: 0;
+            visibility: hidden;
         }
         
         /* 用户信息栏 */
@@ -53,6 +59,12 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .user-info.hidden {
+            opacity: 0;
+            visibility: hidden;
         }
         
         .auth-btn {
@@ -551,8 +563,8 @@
     </style>
 </head>
 <body>
-    <!-- 数据库状态指示器 -->
-    <div class="database-status <%= dbConnected ? 'connected' : '' %>">
+    <!-- 数据库状态指示器 - 用户登录时隐藏 -->
+    <div class="database-status <%= dbConnected ? 'connected' : '' %> <%= user ? 'hidden' : '' %>">
         <% if (dbConnected) { %>
             ✅ 数据库已连接
         <% } else { %>
@@ -561,7 +573,7 @@
     </div>
 
     <!-- 用户信息栏 -->
-    <div class="user-info">
+    <div class="user-info" id="userInfo">
         <% if (user) { %>
             <span>欢迎, <%= user.username %></span>
             <form action="/logout" method="POST" style="display: inline;">
@@ -732,6 +744,7 @@
         let importBookmarksBtn, helpBtn, collapseBtn, expandBookmarks, content, closeHelp;
         let changeWallpaperBtn, wallpaperFile, wallpaperPreview, cancelWallpaperBtn, saveWallpaperBtn;
         let debugContainer, debugInfo, debugToggle, debugHide, debugOpacity, debugHeader;
+        let userInfo, databaseStatus;
 
         // 全局变量
         let bookmarks = [];
@@ -753,6 +766,9 @@
             setupEventListeners();
             loadCollapseState();
             setupDebugControls();
+            
+            // 检查用户登录状态并设置数据库状态显示
+            updateDatabaseStatusVisibility();
             
             debug('初始化完成');
             
@@ -813,7 +829,28 @@
             debugOpacity = document.getElementById('debugOpacity');
             debugHeader = document.getElementById('debugHeader');
             
+            // 新增元素
+            userInfo = document.getElementById('userInfo');
+            databaseStatus = document.querySelector('.database-status');
+            
             debug('DOM元素初始化完成');
+        }
+
+        // 更新数据库状态显示
+        function updateDatabaseStatusVisibility() {
+            <% if (user) { %>
+            // 用户已登录，隐藏数据库状态
+            if (databaseStatus) {
+                databaseStatus.classList.add('hidden');
+                debug('用户已登录，隐藏数据库状态指示器');
+            }
+            <% } else { %>
+            // 用户未登录，显示数据库状态
+            if (databaseStatus) {
+                databaseStatus.classList.remove('hidden');
+                debug('用户未登录，显示数据库状态指示器');
+            }
+            <% } %>
         }
 
         // 设置事件监听器
@@ -1151,8 +1188,14 @@
             debugContainer.classList.add('debug-hidden');
             isDebugHidden = true;
             expandBookmarks.style.display = 'block';
+            
+            // 隐藏用户信息栏
+            if (userInfo) {
+                userInfo.classList.add('hidden');
+            }
+            
             saveCollapseState();
-            debug('收起收藏栏并隐藏调试窗口');
+            debug('收起收藏栏并隐藏调试窗口和用户信息栏');
         }
 
         // 展开收藏栏
@@ -1161,8 +1204,14 @@
             debugContainer.classList.remove('debug-hidden');
             isDebugHidden = false;
             expandBookmarks.style.display = 'none';
+            
+            // 显示用户信息栏
+            if (userInfo) {
+                userInfo.classList.remove('hidden');
+            }
+            
             saveCollapseState();
-            debug('展开收藏栏并显示调试窗口');
+            debug('展开收藏栏并显示调试窗口和用户信息栏');
         }
 
         // 更新图标预览
