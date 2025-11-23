@@ -3,7 +3,9 @@ const mongoose = require('mongoose');
 const bookmarkSchema = new mongoose.Schema({
   name: {
     type: String,
-    trim: true
+    required: false,
+    trim: true,
+    maxlength: 50
   },
   url: {
     type: String,
@@ -12,6 +14,7 @@ const bookmarkSchema = new mongoose.Schema({
   },
   icon: {
     type: String,
+    required: false,
     trim: true
   },
   userId: {
@@ -29,7 +32,7 @@ const bookmarkSchema = new mongoose.Schema({
   }
 });
 
-// 更新时自动设置updatedAt
+// 在更新时自动设置 updatedAt
 bookmarkSchema.pre('save', function(next) {
   this.updatedAt = Date.now();
   next();
