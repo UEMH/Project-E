@@ -31,17 +31,26 @@ userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
   try {
+    console.log('开始加密密码...');
     const salt = await bcrypt.genSalt(12);
     this.password = await bcrypt.hash(this.password, salt);
+    console.log('密码加密完成');
     next();
   } catch (error) {
+    console.error('密码加密错误:', error);
     next(error);
   }
 });
 
 // 添加密码验证方法
 userSchema.methods.comparePassword = async function(candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  console.log('比较密码...');
+  console.log('候选密码:', candidatePassword ? `长度: ${candidatePassword.length}` : '空');
+  console.log('存储的哈希:', this.password ? '存在' : '不存在');
+  
+  const result = await bcrypt.compare(candidatePassword, this.password);
+  console.log('密码比较结果:', result);
+  return result;
 };
 
 // 更新最后登录时间的方法
@@ -55,6 +64,7 @@ userSchema.statics.createDefaultAdmin = async function() {
   try {
     const adminExists = await this.findOne({ username: 'UEMH-CHAN' });
     if (!adminExists) {
+      console.log('创建默认管理员用户...');
       const adminUser = new this({
         username: 'UEMH-CHAN',
         password: '041018'
@@ -66,6 +76,21 @@ userSchema.statics.createDefaultAdmin = async function() {
     }
   } catch (error) {
     console.error('❌ 创建默认管理员用户失败:', error.message);
+  }
+};
+
+// 静态方法：列出所有用户（用于调试）
+userSchema.statics.listAllUsers = async function() {
+  try {
+    const users = await this.find({}, 'username createdAt lastLogin');
+    console.log('📋 数据库中的用户列表:');
+    users.forEach(user => {
+      console.log(`   - ${user.username} (创建于: ${user.createdAt}, 最后登录: ${user.lastLogin || '从未登录'})`);
+    });
+    return users;
+  } catch (error) {
+    console.error('列出用户错误:', error);
+    return [];
   }
 };
 
