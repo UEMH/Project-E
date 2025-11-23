@@ -9,9 +9,19 @@
 <body>
     <div class="login-container">
         <h1>用户登录</h1>
+        
+        <!-- 数据库连接状态提示 -->
+        <div class="database-status" style="margin-bottom: 1rem; padding: 0.5rem; border-radius: 5px; text-align: center; background: #fff3cd; border: 1px solid #ffeaa7;">
+            <p style="margin: 0; color: #856404; font-size: 0.9rem;">
+                ⚠️ 当前运行在离线模式<br>
+                仅支持默认管理员账号登录
+            </p>
+        </div>
+        
         <% if (error) { %>
             <div class="error"><%= error %></div>
         <% } %>
+        
         <form action="/login" method="POST">
             <div class="form-group">
                 <label for="username">用户名:</label>
@@ -23,11 +33,23 @@
             </div>
             <button type="submit">登录</button>
         </form>
+        
         <div class="links">
             <a href="/register">没有账号？立即注册</a>
         </div>
+        
         <div class="default-account">
-            <p style="margin: 0; font-size: 0.9rem; color: #666;">默认账号: UEMH-CHAN / 041018</p>
+            <p style="margin: 0; font-size: 0.9rem; color: #666;">
+                <strong>默认管理员账号:</strong><br>
+                用户名: UEMH-CHAN<br>
+                密码: 041018
+            </p>
+        </div>
+        
+        <div class="offline-info" style="margin-top: 1rem; padding: 0.5rem; background: #e7f3ff; border-radius: 5px; text-align: center;">
+            <p style="margin: 0; font-size: 0.8rem; color: #0066cc;">
+                💡 提示: 当前为离线模式，登录后可查看页面效果，但部分功能可能受限
+            </p>
         </div>
     </div>
 </body>
