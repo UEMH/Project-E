@@ -14,7 +14,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 静态文件服务
+// 静态文件服务 - 确保正确配置
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1d',
   etag: true,
@@ -29,30 +29,60 @@ app.use(express.static(path.join(__dirname, 'public'), {
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// 数据库连接（带错误处理）
+// 数据库连接状态
 let dbConnected = false;
 const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/bookmark-app';
 
+// 离线用户数据（用于数据库连接失败时）
+const offlineUsers = {
+  'UEMH-CHAN': {
+    id: 'offline-admin',
+    username: 'UEMH-CHAN',
+    // 041018 的 bcrypt 哈希
+    passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/eoS3V3PLgw8sWefQa'
+  }
+};
+
+// 异步数据库连接函数
 const connectDB = async () => {
   try {
+    // 第 38 行：开发者需要在此处填写正确的 MongoDB 连接字符串
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 5000,
+      serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
     console.log('✅ 已连接到 MongoDB 数据库');
     dbConnected = true;
+    
+    // 尝试创建默认用户
+    try {
+      const User = require('./models/User');
+      const existingUser = await User.findOne({ username: 'UEMH-CHAN' });
+      if (!existingUser) {
+        const hashedPassword = await bcrypt.hash('041018', 12);
+        const defaultUser = new User({
+          username: 'UEMH-CHAN',
+          password: hashedPassword
+        });
+        await defaultUser.save();
+        console.log('✅ 默认用户 UEMH-CHAN 创建成功');
+      }
+    } catch (userError) {
+      console.log('⚠️  默认用户创建失败（不影响应用运行）:', userError.message);
+    }
   } catch (err) {
     console.error('❌ MongoDB 连接错误:', err.message);
-    console.log('⚠️  使用离线模式运行，部分功能受限');
+    console.log('⚠️  使用离线模式运行，管理员账号仍可登录');
     dbConnected = false;
   }
 };
 
+// 启动数据库连接（但不阻塞应用启动）
 connectDB();
 
-// 会话配置
+// 会话配置 - 使用内存存储作为后备
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'fallback-secret-key-change-in-production',
   resave: false,
@@ -60,12 +90,16 @@ const sessionConfig = {
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
     maxAge: 24 * 60 * 60 * 1000
-  },
-  store: dbConnected ? MongoStore.create({
+  }
+};
+
+// 如果数据库连接成功，使用 MongoStore
+if (dbConnected) {
+  sessionConfig.store = MongoStore.create({
     mongoUrl: mongoUri,
     collectionName: 'sessions'
-  }) : undefined
-};
+  });
+}
 
 app.use(session(sessionConfig));
 
@@ -105,21 +139,12 @@ const upload = multer({
   }
 });
 
-// 创建内存中的用户数据（用于离线模式）
-const offlineUsers = {
-  'UEMH-CHAN': {
-    id: 'offline-admin',
-    username: 'UEMH-CHAN',
-    password: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/eoS3V3PLgw8sWefQa' // 041018 的哈希
-  }
-};
-
 // 路由
 app.use('/', require('./routes/auth'));
 app.use('/bookmarks', require('./routes/bookmarks'));
 app.use('/api', require('./routes/api'));
 
-// 主页路由
+// 主页路由 - 总是显示页面
 app.get('/', (req, res) => {
   res.render('dashboard', { 
     user: req.session.user || null,
@@ -145,42 +170,50 @@ app.post('/upload-wallpaper', upload.single('wallpaper'), (req, res) => {
   });
 });
 
-// 离线登录路由
-app.post('/offline-login', async (req, res) => {
-  const { username, password } = req.body;
-  
-  console.log('离线登录尝试:', { username, password });
-  
-  if (!username || !password) {
-    return res.status(400).json({ 
-      success: false, 
-      error: '用户名和密码不能为空' 
-    });
-  }
-  
-  const user = offlineUsers[username];
-  if (user) {
-    const isValid = await bcrypt.compare(password, user.password);
-    if (isValid) {
-      req.session.userId = user.id;
-      req.session.user = { 
-        id: user.id,
-        username: user.username
-      };
-      
-      console.log('✅ 离线登录成功');
-      return res.json({ 
-        success: true, 
-        message: '离线登录成功',
-        user: req.session.user
+// 离线登录验证路由
+app.post('/api/offline-login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        error: '用户名和密码不能为空' 
       });
     }
+    
+    // 检查离线用户
+    const offlineUser = offlineUsers[username];
+    if (offlineUser) {
+      const isValid = await bcrypt.compare(password, offlineUser.passwordHash);
+      if (isValid) {
+        req.session.userId = offlineUser.id;
+        req.session.user = { 
+          id: offlineUser.id,
+          username: offlineUser.username
+        };
+        
+        console.log('✅ 离线登录成功:', username);
+        return res.json({ 
+          success: true, 
+          message: '离线登录成功',
+          user: req.session.user
+        });
+      }
+    }
+    
+    return res.status(401).json({ 
+      success: false, 
+      error: '用户名或密码错误' 
+    });
+    
+  } catch (error) {
+    console.error('离线登录错误:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: '登录失败，请稍后重试' 
+    });
   }
-  
-  return res.status(401).json({ 
-    success: false, 
-    error: '用户名或密码错误' 
-  });
 });
 
 // 健康检查端点
@@ -233,7 +266,10 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 服务器运行在端口 ${PORT}`);
   console.log(`🌍 环境: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  数据库状态: ${dbConnected ? '已连接' : '未连接 - 离线模式'}`);
-  console.log(`👤 离线用户: UEMH-CHAN / 041018`);
+  console.log(`👤 离线管理员: UEMH-CHAN / 041018`);
+  if (!dbConnected) {
+    console.log(`💡 提示: 在 .env 文件中设置 MONGODB_URI 以启用完整功能`);
+  }
 });
 
 module.exports = app;
