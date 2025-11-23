@@ -2,7 +2,7 @@ const express = require('express');
 const Bookmark = require('../models/Bookmark');
 const router = express.Router();
 
-// GET - 获取所有书签 (无需认证)
+// GET - 获取所有书签
 router.get('/bookmarks', async (req, res) => {
   try {
     const { page = 1, limit = 10, search } = req.query;
