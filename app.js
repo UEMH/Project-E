@@ -6,6 +6,7 @@ const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
+const MongoStore = require('connect-mongo');
 
 const app = express();
 
@@ -24,39 +25,53 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
-// EJS模板引擎配置 [citation:3]
+// EJS模板引擎配置
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 // 数据库连接状态
 let dbConnected = false;
-const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/bookmark-app';
-
-// 离线用户数据（用于数据库连接失败时）
-const offlineUsers = {
-  'UEMH-CHAN': {
-    id: 'offline-admin',
-    username: 'UEMH-CHAN',
-    password: '041018'
-  }
-};
+const mongoUri = process.env.MONGODB_URI || 'mongodb+srv://Altaasadm:1520134824@cluster0.x3thnlr.mongodb.net/bookmark-app?retryWrites=true&w=majority&appName=Cluster0';
 
 // 数据库连接函数
 const connectDB = async () => {
   try {
-    // 第 45 行：在此处填写您的 MongoDB 连接字符串
+    console.log('🔄 正在连接到 MongoDB...');
+    
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
-      serverSelectionTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 30000,
       socketTimeoutMS: 45000,
+      maxPoolSize: 10,
+      retryWrites: true,
+      w: 'majority'
     });
-    console.log('✅ 已连接到 MongoDB 数据库');
+    
+    console.log('✅ 已成功连接到 MongoDB 数据库');
     dbConnected = true;
+    
+    // 测试数据库操作
+    try {
+      const User = require('./models/User');
+      const userCount = await User.countDocuments();
+      console.log(`📊 数据库中现有用户数量: ${userCount}`);
+    } catch (testError) {
+      console.log('⚠️  数据库连接测试完成，但用户集合可能尚未创建');
+    }
+    
   } catch (err) {
     console.error('❌ MongoDB 连接错误:', err.message);
-    console.log('⚠️  使用离线模式运行，管理员账号仍可登录');
+    console.error('🔧 错误详情:', err);
     dbConnected = false;
+    
+    // 提供具体的解决建议
+    if (err.name === 'MongoServerSelectionError') {
+      console.log('💡 解决方案:');
+      console.log('   1. 检查 MongoDB Atlas IP 白名单设置');
+      console.log('   2. 验证连接字符串中的用户名和密码');
+      console.log('   3. 检查集群状态');
+    }
   }
 };
 
@@ -68,6 +83,11 @@ app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
+  store: MongoStore.create({
+    mongoUrl: mongoUri,
+    collectionName: 'sessions',
+    ttl: 24 * 60 * 60 // 1天
+  }),
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
     maxAge: 24 * 60 * 60 * 1000
@@ -115,7 +135,7 @@ app.use('/', require('./routes/auth'));
 app.use('/bookmarks', require('./routes/bookmarks'));
 app.use('/api', require('./routes/api'));
 
-// 主页路由 [citation:9]
+// 主页路由
 app.get('/', (req, res) => {
   res.render('dashboard', { 
     user: req.session.user || null,
@@ -147,7 +167,6 @@ app.get('/health', (req, res) => {
     status: 'OK', 
     timestamp: new Date(),
     database: dbConnected ? 'connected' : 'disconnected',
-    offlineMode: !dbConnected,
     session: req.session.user ? 'logged_in' : 'not_logged_in'
   });
 });
@@ -174,8 +193,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 服务器运行在端口 ${PORT}`);
   console.log(`🌍 环境: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🗄️  数据库状态: ${dbConnected ? '已连接' : '未连接 - 离线模式'}`);
-  console.log(`👤 离线管理员: UEMH-CHAN / 041018`);
+  console.log(`🗄️  数据库状态: ${dbConnected ? '已连接' : '未连接'}`);
 });
 
 module.exports = app;
