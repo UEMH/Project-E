@@ -137,3 +137,34 @@ button:hover {
     font-size: 0.9rem;
     color: #666;
 }
+
+/* 数据库状态样式 */
+.database-status {
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    border-radius: 5px;
+    text-align: center;
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+}
+
+.database-status p {
+    margin: 0;
+    color: #856404;
+    font-size: 0.9rem;
+}
+
+/* 离线信息样式 */
+.offline-info {
+    margin-top: 1rem;
+    padding: 0.5rem;
+    background: #e7f3ff;
+    border-radius: 5px;
+    text-align: center;
+}
+
+.offline-info p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: #0066cc;
+}
