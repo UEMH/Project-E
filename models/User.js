@@ -23,7 +23,6 @@ const userSchema = new mongoose.Schema({
 
 // 在保存前加密密码
 userSchema.pre('save', async function(next) {
-  // 只有当密码被修改时才加密
   if (!this.isModified('password')) return next();
   
   try {
