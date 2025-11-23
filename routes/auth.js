@@ -8,38 +8,9 @@ const offlineUsers = {
   'UEMH-CHAN': {
     id: 'offline-admin',
     username: 'UEMH-CHAN',
-    password: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/eoS3V3PLgw8sWefQa'
+    passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/eoS3V3PLgw8sWefQa'
   }
 };
-
-// 创建默认用户函数
-const createDefaultUser = async () => {
-  try {
-    const UserModel = require('../models/User');
-    let existingUser = await UserModel.findOne({ username: 'UEMH-CHAN' });
-    
-    if (!existingUser) {
-      console.log('创建默认用户 UEMH-CHAN...');
-      const hashedPassword = await bcrypt.hash('041018', 12);
-      const defaultUser = new UserModel({
-        username: 'UEMH-CHAN',
-        password: hashedPassword
-      });
-      
-      await defaultUser.save();
-      console.log('✅ 默认用户 UEMH-CHAN 创建成功');
-    } else {
-      console.log('✅ 默认用户 UEMH-CHAN 已存在');
-    }
-  } catch (error) {
-    console.error('创建默认用户错误（可忽略，将使用离线模式）:', error.message);
-  }
-};
-
-// 尝试创建默认用户
-createDefaultUser().catch(err => {
-  console.log('默认用户创建失败，将使用离线模式:', err.message);
-});
 
 // 登录页面
 router.get('/login', (req, res) => {
@@ -49,7 +20,7 @@ router.get('/login', (req, res) => {
   res.render('login', { 
     error: null,
     user: null,
-    dbConnected: false
+    dbConnected: false // 强制显示离线模式信息
   });
 });
 
@@ -64,12 +35,12 @@ router.get('/register', (req, res) => {
   });
 });
 
-// 登录处理
+// 登录处理（支持离线模式）
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
-    console.log('登录尝试:', { username: username ? username.trim() : '空', passwordLength: password ? password.length : 0 });
+    console.log('登录尝试:', { username: username ? username.trim() : '空' });
     
     if (!username || !password) {
       return res.render('login', { 
@@ -82,8 +53,7 @@ router.post('/login', async (req, res) => {
     
     // 首先尝试数据库登录
     try {
-      const UserModel = require('../models/User');
-      const user = await UserModel.findOne({ username: trimmedUsername });
+      const user = await User.findOne({ username: trimmedUsername });
       
       if (user) {
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
@@ -106,7 +76,7 @@ router.post('/login', async (req, res) => {
     // 数据库登录失败，尝试离线登录
     const offlineUser = offlineUsers[trimmedUsername];
     if (offlineUser) {
-      const isValid = await bcrypt.compare(password, offlineUser.password);
+      const isValid = await bcrypt.compare(password, offlineUser.passwordHash);
       if (isValid) {
         req.session.userId = offlineUser.id;
         req.session.user = { 
@@ -139,7 +109,7 @@ router.post('/register', async (req, res) => {
   try {
     const { username, password, confirmPassword } = req.body;
     
-    console.log('注册尝试:', { username: username ? username.trim() : '空', passwordLength: password ? password.length : 0 });
+    console.log('注册尝试:', { username: username ? username.trim() : '空' });
     
     if (!username || !password || !confirmPassword) {
       return res.render('register', { 
@@ -172,8 +142,7 @@ router.post('/register', async (req, res) => {
     const trimmedUsername = username.trim();
     
     try {
-      const UserModel = require('../models/User');
-      const existingUser = await UserModel.findOne({ username: trimmedUsername });
+      const existingUser = await User.findOne({ username: trimmedUsername });
       if (existingUser) {
         return res.render('register', { 
           error: '用户名已存在',
@@ -182,7 +151,7 @@ router.post('/register', async (req, res) => {
       }
       
       const hashedPassword = await bcrypt.hash(password, 12);
-      const user = new UserModel({ 
+      const user = new User({ 
         username: trimmedUsername, 
         password: hashedPassword
       });
