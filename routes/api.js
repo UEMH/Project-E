@@ -5,13 +5,19 @@ const router = express.Router();
 // GET - 获取所有书签
 router.get('/bookmarks', async (req, res) => {
   try {
-    const { page = 1, limit = 10, search } = req.query;
-    const query = search ? { 
-      $or: [
+    const { page = 1, limit = 10, search, userId } = req.query;
+    const query = {};
+    
+    if (search) {
+      query.$or = [
         { name: { $regex: search, $options: 'i' } },
         { url: { $regex: search, $options: 'i' } }
-      ]
-    } : {};
+      ];
+    }
+    
+    if (userId) {
+      query.userId = userId;
+    }
     
     const bookmarks = await Bookmark.find(query)
       .limit(limit * 1)
@@ -27,6 +33,7 @@ router.get('/bookmarks', async (req, res) => {
       total
     });
   } catch (error) {
+    console.error('获取书签API错误:', error);
     res.status(500).json({ error: '获取书签失败' });
   }
 });
@@ -40,6 +47,7 @@ router.get('/bookmarks/:id', async (req, res) => {
     }
     res.json(bookmark);
   } catch (error) {
+    console.error('获取书签详情API错误:', error);
     res.status(500).json({ error: '获取书签失败' });
   }
 });
@@ -57,6 +65,7 @@ router.post('/bookmarks', async (req, res) => {
     await bookmark.save();
     res.status(201).json(bookmark);
   } catch (error) {
+    console.error('创建书签API错误:', error);
     res.status(500).json({ error: '创建书签失败' });
   }
 });
@@ -77,6 +86,7 @@ router.put('/bookmarks/:id', async (req, res) => {
     
     res.json(bookmark);
   } catch (error) {
+    console.error('更新书签API错误:', error);
     res.status(500).json({ error: '更新书签失败' });
   }
 });
@@ -90,6 +100,7 @@ router.delete('/bookmarks/:id', async (req, res) => {
     }
     res.json({ message: '书签删除成功' });
   } catch (error) {
+    console.error('删除书签API错误:', error);
     res.status(500).json({ error: '删除书签失败' });
   }
 });
