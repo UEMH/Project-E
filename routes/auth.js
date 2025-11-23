@@ -1,26 +1,46 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const router = express.Router();
 
-// 创建默认用户
+// 创建默认用户函数
 const createDefaultUser = async () => {
   try {
-    const existingUser = await User.findOne({ username: 'UEMH-CHAN' });
+    let existingUser = await User.findOne({ username: 'UEMH-CHAN' });
+    
     if (!existingUser) {
-      const hashedPassword = await bcrypt.hash('041018', 12);
+      console.log('创建默认用户 UEMH-CHAN...');
       const defaultUser = new User({
         username: 'UEMH-CHAN',
-        password: hashedPassword
+        password: '041018' // 这会自动被加密
       });
+      
       await defaultUser.save();
       console.log('✅ 默认用户 UEMH-CHAN 创建成功');
+      
+      // 验证默认用户密码
+      const testUser = await User.findOne({ username: 'UEMH-CHAN' });
+      const isCorrect = await testUser.correctPassword('041018', testUser.password);
+      console.log('默认用户密码验证:', isCorrect ? '成功' : '失败');
+    } else {
+      console.log('✅ 默认用户 UEMH-CHAN 已存在');
+      
+      // 验证现有用户密码
+      const isCorrect = await existingUser.correctPassword('041018', existingUser.password);
+      console.log('现有用户密码验证:', isCorrect ? '成功' : '失败');
+      
+      if (!isCorrect) {
+        console.log('重置默认用户密码...');
+        existingUser.password = '041018';
+        await existingUser.save();
+        console.log('默认用户密码重置成功');
+      }
     }
   } catch (error) {
     console.error('创建默认用户错误:', error);
   }
 };
 
+// 应用启动时创建默认用户
 createDefaultUser();
 
 // 登录页面
@@ -50,6 +70,8 @@ router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
     
+    console.log('登录尝试:', { username: username ? username.trim() : '空', passwordLength: password ? password.length : 0 });
+    
     if (!username || !password) {
       return res.render('login', { 
         error: '用户名和密码不能为空',
@@ -57,15 +79,24 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    const user = await User.findOne({ username: username });
+    const trimmedUsername = username.trim();
+    
+    // 查找用户
+    const user = await User.findOne({ username: trimmedUsername });
+    console.log('找到用户:', user ? `是 (${user.username})` : '否');
+    
     if (!user) {
+      console.log('用户不存在:', trimmedUsername);
       return res.render('login', { 
         error: '用户名或密码错误',
         user: null
       });
     }
     
-    const isPasswordCorrect = await bcrypt.compare(password, user.password);
+    // 验证密码
+    const isPasswordCorrect = await user.correctPassword(password, user.password);
+    console.log('密码验证:', isPasswordCorrect ? '正确' : '错误');
+    
     if (!isPasswordCorrect) {
       return res.render('login', { 
         error: '用户名或密码错误',
@@ -73,19 +104,20 @@ router.post('/login', async (req, res) => {
       });
     }
     
+    // 登录成功
     req.session.userId = user._id;
     req.session.user = { 
       id: user._id,
       username: user.username
     };
     
-    console.log(`用户登录成功: ${user.username}`);
+    console.log(`✅ 用户登录成功: ${user.username}`);
     res.redirect('/');
     
   } catch (error) {
-    console.error('登录错误:', error);
+    console.error('❌ 登录错误:', error);
     res.render('login', { 
-      error: '登录失败，请稍后重试',
+      error: '登录失败，请稍后重试: ' + error.message,
       user: null
     });
   }
@@ -95,6 +127,8 @@ router.post('/login', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { username, password, confirmPassword } = req.body;
+    
+    console.log('注册尝试:', { username: username ? username.trim() : '空', passwordLength: password ? password.length : 0 });
     
     if (!username || !password || !confirmPassword) {
       return res.render('register', { 
@@ -124,7 +158,9 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    const existingUser = await User.findOne({ username: username });
+    const trimmedUsername = username.trim();
+    
+    const existingUser = await User.findOne({ username: trimmedUsername });
     if (existingUser) {
       return res.render('register', { 
         error: '用户名已存在',
@@ -132,10 +168,9 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    const hashedPassword = await bcrypt.hash(password, 12);
     const user = new User({ 
-      username: username.trim(), 
-      password: hashedPassword
+      username: trimmedUsername, 
+      password: password
     });
     
     await user.save();
@@ -146,13 +181,29 @@ router.post('/register', async (req, res) => {
       username: user.username
     };
     
-    console.log(`新用户注册成功: ${user.username}`);
+    console.log(`✅ 新用户注册成功: ${user.username}`);
     res.redirect('/');
     
   } catch (error) {
-    console.error('注册错误:', error);
+    console.error('❌ 注册错误:', error);
+    
+    if (error.code === 11000) {
+      return res.render('register', { 
+        error: '用户名已存在',
+        user: null
+      });
+    }
+    
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.render('register', { 
+        error: messages.join(', '),
+        user: null
+      });
+    }
+    
     res.render('register', { 
-      error: '注册失败，请稍后重试',
+      error: '注册失败，请稍后重试: ' + error.message,
       user: null
     });
   }
@@ -160,12 +211,33 @@ router.post('/register', async (req, res) => {
 
 // 注销
 router.post('/logout', (req, res) => {
+  const username = req.session.user ? req.session.user.username : '未知用户';
   req.session.destroy((err) => {
     if (err) {
       console.error('注销错误:', err);
+    } else {
+      console.log(`用户注销: ${username}`);
     }
     res.redirect('/');
   });
+});
+
+// 用户诊断端点
+router.get('/debug-users', async (req, res) => {
+  try {
+    const users = await User.find({});
+    res.json({
+      totalUsers: users.length,
+      users: users.map(user => ({
+        id: user._id,
+        username: user.username,
+        passwordLength: user.password ? user.password.length : 0,
+        createdAt: user.createdAt
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;
