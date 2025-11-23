@@ -13,7 +13,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 静态文件服务 - 修复配置
+// 静态文件服务
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1d',
   etag: true,
@@ -24,7 +24,7 @@ app.use(express.static(path.join(__dirname, 'public'), {
   }
 }));
 
-// EJS模板引擎
+// EJS模板引擎配置 [citation:3]
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -37,15 +37,14 @@ const offlineUsers = {
   'UEMH-CHAN': {
     id: 'offline-admin',
     username: 'UEMH-CHAN',
-    // 041018 的 bcrypt 哈希
-    passwordHash: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/eoS3V3PLgw8sWefQa'
+    password: '041018'
   }
 };
 
-// 异步数据库连接函数
+// 数据库连接函数
 const connectDB = async () => {
   try {
-    // 第 38 行：开发者需要在此处填写正确的 MongoDB 连接字符串
+    // 第 45 行：在此处填写您的 MongoDB 连接字符串
     await mongoose.connect(mongoUri, {
       useNewUrlParser: true,
       useUnifiedTopology: true,
@@ -54,23 +53,6 @@ const connectDB = async () => {
     });
     console.log('✅ 已连接到 MongoDB 数据库');
     dbConnected = true;
-    
-    // 尝试创建默认用户
-    try {
-      const User = require('./models/User');
-      const existingUser = await User.findOne({ username: 'UEMH-CHAN' });
-      if (!existingUser) {
-        const hashedPassword = await bcrypt.hash('041018', 12);
-        const defaultUser = new User({
-          username: 'UEMH-CHAN',
-          password: hashedPassword
-        });
-        await defaultUser.save();
-        console.log('✅ 默认用户 UEMH-CHAN 创建成功');
-      }
-    } catch (userError) {
-      console.log('⚠️  默认用户创建失败（不影响应用运行）:', userError.message);
-    }
   } catch (err) {
     console.error('❌ MongoDB 连接错误:', err.message);
     console.log('⚠️  使用离线模式运行，管理员账号仍可登录');
@@ -78,11 +60,11 @@ const connectDB = async () => {
   }
 };
 
-// 启动数据库连接（但不阻塞应用启动）
+// 启动数据库连接
 connectDB();
 
-// 会话配置 - 使用内存存储
-const sessionConfig = {
+// 会话配置
+app.use(session({
   secret: process.env.SESSION_SECRET || 'fallback-secret-key-change-in-production',
   resave: false,
   saveUninitialized: false,
@@ -90,9 +72,7 @@ const sessionConfig = {
     secure: process.env.NODE_ENV === 'production',
     maxAge: 24 * 60 * 60 * 1000
   }
-};
-
-app.use(session(sessionConfig));
+}));
 
 // 全局变量中间件
 app.use((req, res, next) => {
@@ -135,7 +115,7 @@ app.use('/', require('./routes/auth'));
 app.use('/bookmarks', require('./routes/bookmarks'));
 app.use('/api', require('./routes/api'));
 
-// 主页路由 - 总是显示页面
+// 主页路由 [citation:9]
 app.get('/', (req, res) => {
   res.render('dashboard', { 
     user: req.session.user || null,
@@ -172,22 +152,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// 系统状态端点
-app.get('/system-status', (req, res) => {
-  res.json({
-    database: {
-      connected: dbConnected,
-      uri: mongoUri ? '已配置' : '未配置'
-    },
-    session: {
-      user: req.session.user ? req.session.user.username : '未登录',
-      userId: req.session.userId
-    },
-    environment: process.env.NODE_ENV || 'development',
-    offlineUsers: Object.keys(offlineUsers)
-  });
-});
-
 // 404 处理
 app.use((req, res) => {
   res.status(404).render('404', { 
@@ -212,9 +176,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🌍 环境: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🗄️  数据库状态: ${dbConnected ? '已连接' : '未连接 - 离线模式'}`);
   console.log(`👤 离线管理员: UEMH-CHAN / 041018`);
-  if (!dbConnected) {
-    console.log(`💡 提示: 在 .env 文件中设置 MONGODB_URI 以启用完整功能`);
-  }
 });
 
 module.exports = app;
