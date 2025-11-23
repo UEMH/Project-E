@@ -28,9 +28,7 @@ jobs:
           npm install
           npm run build --if-present
           npm run test --if-present
-          npm install mongodb
-          npm install multer@1.4.5-lts.1
-          
+          npm install mongodb          
           
           
       - name: Upload artifact for deployment job
@@ -68,6 +66,7 @@ jobs:
           package: .
 
           
+
 
 
 
