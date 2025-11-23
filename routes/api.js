@@ -1,32 +1,41 @@
 const express = require('express');
 const Bookmark = require('../models/Bookmark');
+const User = require('../models/User'); // 添加这行引入User模型
 const router = express.Router();
 
 // GET - 获取所有书签
-// 在 api.js 文件末尾添加
-// 调试端点：重置用户密码
-router.post('/debug/reset-password', async (req, res) => {
+router.get('/bookmarks', async (req, res) => {
   try {
-    const { username, newPassword } = req.body;
+    const { page = 1, limit = 10, search, userId } = req.query;
+    const query = {};
     
-    if (!username || !newPassword) {
-      return res.status(400).json({ error: '用户名和新密码不能为空' });
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { url: { $regex: search, $options: 'i' } }
+      ];
     }
     
-    const user = await User.findOne({ username });
-    if (!user) {
-      return res.status(404).json({ error: '用户未找到' });
+    if (userId) {
+      query.userId = userId;
     }
     
-    user.password = newPassword;
-    await user.save();
+    const bookmarks = await Bookmark.find(query)
+      .limit(limit * 1)
+      .skip((page - 1) * limit)
+      .sort({ createdAt: -1 });
     
-    res.json({ 
-      success: true, 
-      message: `用户 ${username} 密码已重置` 
+    const total = await Bookmark.countDocuments(query);
+    
+    res.json({
+      bookmarks,
+      totalPages: Math.ceil(total / limit),
+      currentPage: page,
+      total
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('获取书签API错误:', error);
+    res.status(500).json({ error: '获取书签失败' });
   }
 });
 
@@ -97,5 +106,52 @@ router.delete('/bookmarks/:id', async (req, res) => {
   }
 });
 
-module.exports = router;
+// 调试端点：重置用户密码
+router.post('/debug/reset-password', async (req, res) => {
+  try {
+    const { username, newPassword } = req.body;
+    
+    console.log('重置密码请求:', { username, newPasswordLength: newPassword ? newPassword.length : 0 });
+    
+    if (!username || !newPassword) {
+      return res.status(400).json({ error: '用户名和新密码不能为空' });
+    }
+    
+    const user = await User.findOne({ username });
+    if (!user) {
+      return res.status(404).json({ error: '用户未找到' });
+    }
+    
+    console.log(`找到用户: ${user.username}, 正在重置密码...`);
+    
+    // 直接设置密码，pre-save 钩子会处理加密
+    user.password = newPassword;
+    await user.save();
+    
+    console.log(`✅ 用户 ${username} 密码重置成功`);
+    
+    res.json({ 
+      success: true, 
+      message: `用户 ${username} 密码已重置` 
+    });
+  } catch (error) {
+    console.error('重置密码错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
 
+// 调试端点：获取所有用户
+router.get('/debug/users', async (req, res) => {
+  try {
+    const users = await User.find({}, 'username createdAt lastLogin');
+    res.json({
+      total: users.length,
+      users: users
+    });
+  } catch (error) {
+    console.error('获取用户列表错误:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+module.exports = router;
