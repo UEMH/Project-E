@@ -1,15 +1,17 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const router = express.Router();
 
-// 创建默认用户（在应用启动时调用）
+// 创建默认用户
 const createDefaultUser = async () => {
   try {
     const existingUser = await User.findOne({ username: 'UEMH-CHAN' });
     if (!existingUser) {
+      const hashedPassword = await bcrypt.hash('041018', 12);
       const defaultUser = new User({
         username: 'UEMH-CHAN',
-        password: '041018'
+        password: hashedPassword
       });
       await defaultUser.save();
       console.log('✅ 默认用户 UEMH-CHAN 创建成功');
@@ -19,7 +21,6 @@ const createDefaultUser = async () => {
   }
 };
 
-// 调用创建默认用户
 createDefaultUser();
 
 // 登录页面
@@ -64,7 +65,7 @@ router.post('/login', async (req, res) => {
       });
     }
     
-    const isPasswordCorrect = await user.correctPassword(password, user.password);
+    const isPasswordCorrect = await bcrypt.compare(password, user.password);
     if (!isPasswordCorrect) {
       return res.render('login', { 
         error: '用户名或密码错误',
@@ -116,8 +117,14 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    const existingUser = await User.findOne({ username: username });
+    if (username.length < 3) {
+      return res.render('register', { 
+        error: '用户名至少需要3个字符',
+        user: null
+      });
+    }
     
+    const existingUser = await User.findOne({ username: username });
     if (existingUser) {
       return res.render('register', { 
         error: '用户名已存在',
@@ -125,9 +132,10 @@ router.post('/register', async (req, res) => {
       });
     }
     
+    const hashedPassword = await bcrypt.hash(password, 12);
     const user = new User({ 
       username: username.trim(), 
-      password 
+      password: hashedPassword
     });
     
     await user.save();
@@ -143,22 +151,6 @@ router.post('/register', async (req, res) => {
     
   } catch (error) {
     console.error('注册错误:', error);
-    
-    if (error.code === 11000) {
-      return res.render('register', { 
-        error: '用户名已存在',
-        user: null
-      });
-    }
-    
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.render('register', { 
-        error: messages.join(', '),
-        user: null
-      });
-    }
-    
     res.render('register', { 
       error: '注册失败，请稍后重试',
       user: null
