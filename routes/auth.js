@@ -1,17 +1,29 @@
 const express = require('express');
+const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const router = express.Router();
 
-// 创建默认用户函数（带错误处理）
+// 离线用户数据
+const offlineUsers = {
+  'UEMH-CHAN': {
+    id: 'offline-admin',
+    username: 'UEMH-CHAN',
+    password: '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/eoS3V3PLgw8sWefQa'
+  }
+};
+
+// 创建默认用户函数
 const createDefaultUser = async () => {
   try {
-    let existingUser = await User.findOne({ username: 'UEMH-CHAN' });
+    const UserModel = require('../models/User');
+    let existingUser = await UserModel.findOne({ username: 'UEMH-CHAN' });
     
     if (!existingUser) {
       console.log('创建默认用户 UEMH-CHAN...');
-      const defaultUser = new User({
+      const hashedPassword = await bcrypt.hash('041018', 12);
+      const defaultUser = new UserModel({
         username: 'UEMH-CHAN',
-        password: '041018'
+        password: hashedPassword
       });
       
       await defaultUser.save();
@@ -24,7 +36,7 @@ const createDefaultUser = async () => {
   }
 };
 
-// 尝试创建默认用户（但不阻塞启动）
+// 尝试创建默认用户
 createDefaultUser().catch(err => {
   console.log('默认用户创建失败，将使用离线模式:', err.message);
 });
@@ -37,7 +49,7 @@ router.get('/login', (req, res) => {
   res.render('login', { 
     error: null,
     user: null,
-    dbConnected: false // 在登录页面强制显示离线选项
+    dbConnected: false
   });
 });
 
@@ -52,7 +64,7 @@ router.get('/register', (req, res) => {
   });
 });
 
-// 登录处理（带离线后备）
+// 登录处理
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -68,66 +80,55 @@ router.post('/login', async (req, res) => {
     
     const trimmedUsername = username.trim();
     
-    // 尝试数据库登录
+    // 首先尝试数据库登录
     try {
-      // 查找用户
-      const user = await User.findOne({ username: trimmedUsername });
-      console.log('找到用户:', user ? `是 (${user.username})` : '否');
+      const UserModel = require('../models/User');
+      const user = await UserModel.findOne({ username: trimmedUsername });
       
-      if (!user) {
-        console.log('用户不存在:', trimmedUsername);
-        return res.render('login', { 
-          error: '用户名或密码错误',
-          user: null
-        });
+      if (user) {
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+        
+        if (isPasswordCorrect) {
+          req.session.userId = user._id;
+          req.session.user = { 
+            id: user._id,
+            username: user.username
+          };
+          
+          console.log(`✅ 数据库登录成功: ${user.username}`);
+          return res.redirect('/');
+        }
       }
-      
-      // 验证密码
-      const isPasswordCorrect = await user.correctPassword(password, user.password);
-      console.log('密码验证:', isPasswordCorrect ? '正确' : '错误');
-      
-      if (!isPasswordCorrect) {
-        return res.render('login', { 
-          error: '用户名或密码错误',
-          user: null
-        });
-      }
-      
-      // 登录成功
-      req.session.userId = user._id;
-      req.session.user = { 
-        id: user._id,
-        username: user.username
-      };
-      
-      console.log(`✅ 用户登录成功: ${user.username}`);
-      return res.redirect('/');
-      
     } catch (dbError) {
-      console.error('数据库登录失败:', dbError.message);
-      
-      // 数据库失败时，尝试离线登录（仅限默认管理员）
-      if (trimmedUsername === 'UEMH-CHAN' && password === '041018') {
-        req.session.userId = 'offline-admin';
+      console.log('数据库登录失败，尝试离线登录:', dbError.message);
+    }
+    
+    // 数据库登录失败，尝试离线登录
+    const offlineUser = offlineUsers[trimmedUsername];
+    if (offlineUser) {
+      const isValid = await bcrypt.compare(password, offlineUser.password);
+      if (isValid) {
+        req.session.userId = offlineUser.id;
         req.session.user = { 
-          id: 'offline-admin',
-          username: 'UEMH-CHAN'
+          id: offlineUser.id,
+          username: offlineUser.username
         };
         
-        console.log('✅ 使用离线模式登录成功');
+        console.log('✅ 离线登录成功');
         return res.redirect('/');
-      } else {
-        return res.render('login', { 
-          error: `登录失败: ${dbError.message}. 仅默认管理员账号支持离线登录。`,
-          user: null
-        });
       }
     }
+    
+    // 所有登录方式都失败
+    return res.render('login', { 
+      error: '用户名或密码错误',
+      user: null
+    });
     
   } catch (error) {
     console.error('❌ 登录错误:', error);
     res.render('login', { 
-      error: '登录失败，请稍后重试: ' + error.message,
+      error: '登录失败，请稍后重试',
       user: null
     });
   }
@@ -170,50 +171,45 @@ router.post('/register', async (req, res) => {
     
     const trimmedUsername = username.trim();
     
-    const existingUser = await User.findOne({ username: trimmedUsername });
-    if (existingUser) {
+    try {
+      const UserModel = require('../models/User');
+      const existingUser = await UserModel.findOne({ username: trimmedUsername });
+      if (existingUser) {
+        return res.render('register', { 
+          error: '用户名已存在',
+          user: null
+        });
+      }
+      
+      const hashedPassword = await bcrypt.hash(password, 12);
+      const user = new UserModel({ 
+        username: trimmedUsername, 
+        password: hashedPassword
+      });
+      
+      await user.save();
+      
+      req.session.userId = user._id;
+      req.session.user = { 
+        id: user._id,
+        username: user.username
+      };
+      
+      console.log(`✅ 新用户注册成功: ${user.username}`);
+      return res.redirect('/');
+      
+    } catch (dbError) {
+      console.error('数据库注册失败:', dbError);
       return res.render('register', { 
-        error: '用户名已存在',
+        error: '注册失败，数据库连接异常。请稍后重试或使用默认管理员账号登录。',
         user: null
       });
     }
-    
-    const user = new User({ 
-      username: trimmedUsername, 
-      password: password
-    });
-    
-    await user.save();
-    
-    req.session.userId = user._id;
-    req.session.user = { 
-      id: user._id,
-      username: user.username
-    };
-    
-    console.log(`✅ 新用户注册成功: ${user.username}`);
-    res.redirect('/');
     
   } catch (error) {
     console.error('❌ 注册错误:', error);
-    
-    if (error.code === 11000) {
-      return res.render('register', { 
-        error: '用户名已存在',
-        user: null
-      });
-    }
-    
-    if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
-      return res.render('register', { 
-        error: messages.join(', '),
-        user: null
-      });
-    }
-    
     res.render('register', { 
-      error: '注册失败，数据库连接异常。请稍后重试或使用默认管理员账号登录。',
+      error: '注册失败，请稍后重试',
       user: null
     });
   }
