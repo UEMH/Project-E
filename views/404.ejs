@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>页面未找到 - 书签管理</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .notfound-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        h1 { color: #e67e22; margin-bottom: 1rem; }
+        p { color: #666; margin-bottom: 1.5rem; line-height: 1.6; }
+        .btn { 
+            display: inline-block;
+            padding: 10px 20px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .btn:hover { background: #2980b9; }
+        .home-btn { background: #2ecc71; }
+        .home-btn:hover { background: #27ae60; }
+    </style>
+</head>
+<body>
+    <div class="notfound-container">
+        <h1>🔍 页面未找到</h1>
+        <p>抱歉，您访问的页面不存在。</p>
+        <p>可能是URL输入错误，或者页面已被移除。</p>
+        <div style="margin-top: 2rem;">
+            <a href="/" class="btn home-btn">返回首页</a>
+        </div>
+    </div>
+</body>
+</html>
