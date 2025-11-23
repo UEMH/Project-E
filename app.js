@@ -12,7 +12,18 @@ const app = express();
 // 中间件配置
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+// 修复静态文件服务 - 添加详细配置
+app.use(express.static(path.join(__dirname, 'public'), {
+  maxAge: '1d',
+  etag: true,
+  lastModified: true,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css');
+    }
+  }
+}));
 
 // EJS模板引擎
 app.set('view engine', 'ejs');
@@ -88,7 +99,7 @@ app.use('/', require('./routes/auth'));
 app.use('/bookmarks', require('./routes/bookmarks'));
 app.use('/api', require('./routes/api'));
 
-// 主页路由 - 总是显示主页面
+// 主页路由
 app.get('/', (req, res) => {
   res.render('dashboard', { 
     user: req.session.user || null
@@ -122,6 +133,19 @@ app.get('/health', (req, res) => {
   });
 });
 
+// 静态文件测试路由
+app.get('/test-static', (req, res) => {
+  res.json({
+    images: {
+      cat: '/images/cat.ico',
+      background: '/images/Night_copy.jpg'
+    },
+    publicDir: path.join(__dirname, 'public'),
+    files: fs.existsSync(path.join(__dirname, 'public/images')) ? 
+           fs.readdirSync(path.join(__dirname, 'public/images')) : 'images directory not found'
+  });
+});
+
 // 404 处理
 app.use((req, res) => {
   res.status(404).render('404', { 
@@ -142,6 +166,8 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 服务器运行在端口 ${PORT}`);
   console.log(`🌍 环境: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`📁 静态文件目录: ${path.join(__dirname, 'public')}`);
+  console.log(`👁️ 视图目录: ${path.join(__dirname, 'views')}`);
 });
 
 module.exports = app;
