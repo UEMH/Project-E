@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const session = require('express-session');
-const MongoStore = require('connect-mongo');
 const path = require('path');
 const multer = require('multer');
 const fs = require('fs');
@@ -14,7 +13,7 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 静态文件服务 - 确保正确配置
+// 静态文件服务 - 修复配置
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: '1d',
   etag: true,
@@ -82,7 +81,7 @@ const connectDB = async () => {
 // 启动数据库连接（但不阻塞应用启动）
 connectDB();
 
-// 会话配置 - 使用内存存储作为后备
+// 会话配置 - 使用内存存储
 const sessionConfig = {
   secret: process.env.SESSION_SECRET || 'fallback-secret-key-change-in-production',
   resave: false,
@@ -92,14 +91,6 @@ const sessionConfig = {
     maxAge: 24 * 60 * 60 * 1000
   }
 };
-
-// 如果数据库连接成功，使用 MongoStore
-if (dbConnected) {
-  sessionConfig.store = MongoStore.create({
-    mongoUrl: mongoUri,
-    collectionName: 'sessions'
-  });
-}
 
 app.use(session(sessionConfig));
 
@@ -168,52 +159,6 @@ app.post('/upload-wallpaper', upload.single('wallpaper'), (req, res) => {
     message: '壁纸上传成功',
     wallpaperUrl: wallpaperUrl
   });
-});
-
-// 离线登录验证路由
-app.post('/api/offline-login', async (req, res) => {
-  try {
-    const { username, password } = req.body;
-    
-    if (!username || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        error: '用户名和密码不能为空' 
-      });
-    }
-    
-    // 检查离线用户
-    const offlineUser = offlineUsers[username];
-    if (offlineUser) {
-      const isValid = await bcrypt.compare(password, offlineUser.passwordHash);
-      if (isValid) {
-        req.session.userId = offlineUser.id;
-        req.session.user = { 
-          id: offlineUser.id,
-          username: offlineUser.username
-        };
-        
-        console.log('✅ 离线登录成功:', username);
-        return res.json({ 
-          success: true, 
-          message: '离线登录成功',
-          user: req.session.user
-        });
-      }
-    }
-    
-    return res.status(401).json({ 
-      success: false, 
-      error: '用户名或密码错误' 
-    });
-    
-  } catch (error) {
-    console.error('离线登录错误:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: '登录失败，请稍后重试' 
-    });
-  }
 });
 
 // 健康检查端点
