@@ -105,22 +105,6 @@
             text-decoration: underline;
         }
         
-        .default-account {
-            margin-top: 1rem;
-            padding: 15px;
-            background: #f5f5f5;
-            border-radius: 5px;
-            text-align: center;
-            border: 1px solid #e0e0e0;
-        }
-        
-        .default-account p {
-            margin: 0;
-            font-size: 0.9rem;
-            color: #666;
-            line-height: 1.5;
-        }
-        
         .database-status {
             margin-bottom: 1rem;
             padding: 12px;
@@ -134,22 +118,6 @@
             margin: 0;
             color: #856404;
             font-size: 0.9rem;
-            line-height: 1.4;
-        }
-        
-        .offline-info {
-            margin-top: 1rem;
-            padding: 12px;
-            background: #e7f3ff;
-            border-radius: 5px;
-            text-align: center;
-            border: 1px solid #b3d9ff;
-        }
-        
-        .offline-info p {
-            margin: 0;
-            font-size: 0.8rem;
-            color: #0066cc;
             line-height: 1.4;
         }
         
@@ -201,12 +169,12 @@
             <div class="form-group">
                 <label for="username">用户名:</label>
                 <input type="text" id="username" name="username" required 
-                       placeholder="请输入用户名" value="<%= typeof username !== 'undefined' ? username : 'UEMH-CHAN' %>">
+                       placeholder="请输入用户名" autocomplete="username">
             </div>
             <div class="form-group">
                 <label for="password">密码:</label>
                 <input type="password" id="password" name="password" required 
-                       placeholder="请输入密码" value="<%= typeof password !== 'undefined' ? password : '041018' %>">
+                       placeholder="请输入密码" autocomplete="current-password">
             </div>
             <button type="submit" id="loginButton" <%= !dbConnected && 'disabled' %>>
                 <% if (!dbConnected) { %>
@@ -221,22 +189,7 @@
             <a href="/register">没有账号？立即注册</a>
         </div>
         
-        <div class="default-account">
-            <p>
-                <strong>默认管理员账号:</strong><br>
-                用户名: <strong>UEMH-CHAN</strong><br>
-                密码: <strong>041018</strong>
-            </p>
-        </div>
-        
-        <% if (!dbConnected) { %>
-        <div class="offline-info">
-            <p>
-                ⚠️ <strong>系统暂时无法使用</strong><br>
-                数据库连接异常，请检查MongoDB连接配置
-            </p>
-        </div>
-        <% } %>
+        <!-- 已移除默认账号信息 -->
     </div>
 
     <script>
@@ -259,6 +212,12 @@
         
         // 自动聚焦到用户名输入框
         document.getElementById('username').focus();
+        
+        // 页面加载时清空输入框（防止浏览器自动填充）
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        });
     </script>
 </body>
 </html>
