@@ -90,11 +90,12 @@
             top: 0;
             left: 0;
             width: 100%;
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(10px);
             z-index: 999;
             padding: 10px 0;
             transition: all 0.3s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
         
         .top-bookmarks.collapsed {
@@ -132,6 +133,18 @@
         .bookmark-item:hover {
             background: rgba(255, 255, 255, 0.2);
             transform: translateY(-2px);
+        }
+        
+        /* 修改书签链接文字颜色 */
+        .bookmark-item a {
+            color: #ffffff !important;
+            text-decoration: none;
+            font-weight: 500;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+        
+        .bookmark-item a:hover {
+            color: #f0f0f0 !important;
         }
         
         .icon-container {
@@ -369,7 +382,7 @@
             background: #5a6268;
         }
         
-        /* 展开按钮 */
+        /* 展开按钮 - 添加透明度交互 */
         .expand-bookmarks {
             position: fixed;
             top: 10px;
@@ -384,10 +397,16 @@
             z-index: 998;
             display: none;
             transition: all 0.3s ease;
+            opacity: 0.3;
         }
         
         .expand-bookmarks:hover {
             background: rgba(0, 0, 0, 0.9);
+            opacity: 1;
+        }
+        
+        .expand-bookmarks.visible {
+            opacity: 1;
         }
         
         /* 右键菜单 */
@@ -752,6 +771,23 @@
         let isEditing = false;
         let isDebugCollapsed = false;
         let isDebugHidden = false;
+        let fadeTimer;
+
+        // 展开按钮透明度交互
+        function resetFadeTimer() {
+            // 清除之前的计时器
+            if (fadeTimer) clearTimeout(fadeTimer);
+            
+            // 按钮完全显示
+            expandBookmarks.classList.add('visible');
+            expandBookmarks.style.opacity = '1';
+            
+            // 设置3秒后恢复半透明
+            fadeTimer = setTimeout(() => {
+                expandBookmarks.classList.remove('visible');
+                expandBookmarks.style.opacity = '0.3';
+            }, 3000);
+        }
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
@@ -759,6 +795,14 @@
             
             // 初始化DOM元素
             initDOMElements();
+            
+            // 设置展开按钮的事件监听
+            if (expandBookmarks) {
+                // 当用户移动鼠标时
+                document.addEventListener('mousemove', resetFadeTimer);
+                // 当用户滚动页面时
+                document.addEventListener('scroll', resetFadeTimer);
+            }
             
             // 加载收藏项
             loadBookmarks();
@@ -992,6 +1036,12 @@
                 if (data.success) {
                     // 更新背景图片
                     document.getElementById('bgImage').style.backgroundImage = `url('${data.wallpaperUrl}')`;
+                    
+                    // 保存到用户专属存储
+                    const userId = '<%= user ? user.id : "anonymous" %>';
+                    const userWallpaperKey = `customWallpaper_${userId}`;
+                    localStorage.setItem(userWallpaperKey, data.wallpaperUrl);
+                    
                     alert('壁纸更换成功！');
                     hideWallpaperModal();
                     debug('壁纸更换成功: ' + data.wallpaperUrl);
@@ -1005,30 +1055,40 @@
             });
         }
 
-        // 加载收藏项
+        // 加载收藏项 - 按用户隔离
         function loadBookmarks() {
-            const savedBookmarks = localStorage.getItem('customBookmarks');
+            const userId = '<%= user ? user.id : "anonymous" %>';
+            const userSpecificKey = `customBookmarks_${userId}`;
+            const savedBookmarks = localStorage.getItem(userSpecificKey);
+            
             if (savedBookmarks) {
                 bookmarks = JSON.parse(savedBookmarks);
-                debug('从本地存储加载收藏项: ' + bookmarks.length + ' 项');
+                debug('从用户专属存储加载收藏项: ' + bookmarks.length + ' 项');
             } else {
                 bookmarks = [...defaultBookmarks];
                 saveBookmarks();
                 debug('使用默认收藏项');
             }
             
-            // 加载自定义壁纸
-            const customWallpaper = localStorage.getItem('customWallpaper');
+            // 加载用户专属壁纸
+            const userWallpaperKey = `customWallpaper_${userId}`;
+            const customWallpaper = localStorage.getItem(userWallpaperKey);
             if (customWallpaper) {
                 document.getElementById('bgImage').style.backgroundImage = `url('${customWallpaper}')`;
-                debug('加载自定义壁纸');
+                debug('加载用户专属壁纸');
+            } else {
+                // 新用户使用默认壁纸（无）
+                document.getElementById('bgImage').style.backgroundImage = '';
+                debug('使用默认壁纸');
             }
         }
 
-        // 保存收藏项到本地存储
+        // 保存收藏项到本地存储 - 按用户隔离
         function saveBookmarks() {
-            localStorage.setItem('customBookmarks', JSON.stringify(bookmarks));
-            debug('保存收藏项到本地存储: ' + bookmarks.length + ' 项');
+            const userId = '<%= user ? user.id : "anonymous" %>';
+            const userSpecificKey = `customBookmarks_${userId}`;
+            localStorage.setItem(userSpecificKey, JSON.stringify(bookmarks));
+            debug('保存收藏项到用户专属存储: ' + bookmarks.length + ' 项');
         }
 
         // 渲染收藏项
@@ -1188,6 +1248,9 @@
             debugContainer.classList.add('debug-hidden');
             isDebugHidden = true;
             expandBookmarks.style.display = 'block';
+            
+            // 显示后立即触发一次重置计时
+            resetFadeTimer();
             
             // 隐藏用户信息栏
             if (userInfo) {
