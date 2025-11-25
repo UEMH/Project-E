@@ -3,1578 +3,828 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><%= user ? user.username + '的书签' : 'UEMH_HP - 个人书签管理' %></title>
-    <link rel="icon" type="image/x-icon" href="/images/cat.ico">
+    <title>书签管理 - Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
     <style>
-        * { 
-            margin: 0; 
-            padding: 0; 
-            box-sizing: border-box; 
+        /* 基础样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        body { 
-            font-family: 'Microsoft JhengHei', Arial, sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+
+        body {
+            <% if (settings && settings.wallpaper) { %>
+                background: url('<%= settings.wallpaper %>') no-repeat center center fixed;
+            <% } else { %>
+                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            <% } %>
+            background-size: cover;
             color: #fff;
             min-height: 100vh;
-            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
         }
         
-        /* 数据库状态指示器 */
-        .database-status {
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            z-index: 1000;
-            background: rgba(255, 165, 0, 0.9);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 15px;
-            font-size: 0.8rem;
-            backdrop-filter: blur(5px);
-            transition: all 0.3s ease;
-        }
-        
-        .database-status.connected {
-            background: rgba(46, 204, 113, 0.9);
-        }
-        
-        .database-status.hidden {
-            opacity: 0;
-            visibility: hidden;
-        }
-        
-        /* 用户信息栏 */
-        .user-info {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
+        .content-overlay {
             background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: all 0.3s ease;
+            min-height: 100vh;
+            padding: 20px;
         }
-        
-        .user-info.hidden {
-            opacity: 0;
-            visibility: hidden;
-        }
-        
-        .auth-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 15px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-block;
-        }
-        
-        .auth-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        /* 书签栏样式 */
-        .top-bookmarks {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(10px);
-            z-index: 999;
-            padding: 10px 0;
-            transition: all 0.3s ease;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-        
-        .top-bookmarks.collapsed {
-            transform: translateY(-100%);
-        }
-        
-        .bookmarks-container {
+
+        /* 顶部导航栏样式 */
+        .top-nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        .bookmarks-bar {
-            display: flex;
-            gap: 15px;
-            flex-wrap: wrap;
-            flex: 1;
-        }
-        
-        .bookmark-item {
-            display: flex;
-            align-items: center;
+            margin-bottom: 30px;
+            padding: 15px 20px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 8px 15px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            color: white;
-            text-decoration: none;
-        }
-        
-        .bookmark-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
-        }
-        
-        /* 修改书签链接文字颜色 */
-        .bookmark-item a {
-            color: #ffffff !important;
-            text-decoration: none;
-            font-weight: 500;
-            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
-        }
-        
-        .bookmark-item a:hover {
-            color: #f0f0f0 !important;
-        }
-        
-        .icon-container {
-            width: 20px;
-            height: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 8px;
-        }
-        
-        .bookmark-icon {
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-        }
-        
-        .emoji-icon {
-            font-size: 16px;
-        }
-        
-        .bookmarks-header-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .header-btn {
-            background: rgba(255, 255, 255, 0.1);
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            color: white;
-            font-size: 16px;
-            transition: all 0.3s ease;
-        }
-        
-        .header-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: scale(1.1);
-        }
-        
-        .disabled-btn {
-            opacity: 0.5;
-            cursor: not-allowed !important;
-        }
-        
-        .disabled-btn:hover {
-            transform: none !important;
-            background: rgba(255, 255, 255, 0.1) !important;
-        }
-        
-        /* 背景和内容区域 */
-        .background-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: -1;
-            overflow: hidden;
-        }
-        
-        .bg-image {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            background-size: cover;
-            background-position: center;
-            opacity: 1;
-            transition: opacity 0.5s ease;
-        }
-        
-        /* 用户专属欢迎信息 */
-        .user-welcome {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding: 2rem;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-            max-width: 600px;
-            margin: 2rem auto;
-        }
-        
-        .user-welcome h2 {
-            font-size: 2.5rem;
-            margin-bottom: 1rem;
-            color: #fff;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-        
-        .user-welcome p {
-            font-size: 1.2rem;
-            color: #ccc;
-            line-height: 1.6;
-        }
-        
-        /* 访客欢迎信息 */
-        .guest-welcome {
-            text-align: center;
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 70vh;
-        }
-        
-        .guest-welcome h1 {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
-        }
-        
-        .guest-welcome p {
-            font-size: 1.2rem;
-            max-width: 600px;
-            line-height: 1.6;
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-            margin-bottom: 2rem;
-        }
-        
-        /* 登录提示按钮 */
-        .login-prompt {
-            display: inline-block;
-            background: rgba(76, 175, 80, 0.8);
-            color: white;
-            padding: 12px 30px;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 1.1rem;
-            transition: all 0.3s ease;
-            margin-top: 1rem;
-        }
-        
-        .login-prompt:hover {
-            background: rgba(76, 175, 80, 1);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
-        
-        /* 隐藏内容区域当用户登录时 */
-        .content.logged-in {
-            display: none;
-        }
-        
-        /* 模态框样式 */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .modal-content {
-            background: white;
-            padding: 2rem;
             border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            width: 100%;
-            max-width: 400px;
-            color: #333;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
-        .modal h2 {
-            text-align: center;
-            margin-bottom: 1.5rem;
-            color: #333;
-        }
-        
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #555;
-        }
-        
-        .form-group input {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-        }
-        
-        .modal-buttons {
+
+        .nav-left {
             display: flex;
-            gap: 10px;
-            margin-top: 1.5rem;
+            align-items: center;
+            gap: 15px;
         }
-        
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 1rem;
-            flex: 1;
-            transition: background 0.3s;
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
         }
-        
-        .btn-primary {
+
+        .toggle-folder-btn {
             background: #4CAF50;
             color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
         }
-        
-        .btn-primary:hover {
+
+        .toggle-folder-btn:hover {
             background: #45a049;
+            transform: translateY(-2px);
         }
-        
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-        
-        /* 展开按钮 - 添加透明度交互 */
-        .expand-bookmarks {
-            position: fixed;
-            top: 10px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.7);
+
+        .login-btn {
+            background: #2196F3;
             color: white;
             border: none;
-            border-radius: 20px;
-            padding: 5px 15px;
+            padding: 10px 20px;
+            border-radius: 5px;
             cursor: pointer;
-            z-index: 998;
-            display: none;
+            font-size: 14px;
+            text-decoration: none;
             transition: all 0.3s ease;
-            opacity: 0.3;
+            display: inline-block;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
         }
-        
-        .expand-bookmarks:hover {
-            background: rgba(0, 0, 0, 0.9);
-            opacity: 1;
+
+        .login-btn:hover {
+            background: #1976D2;
+            transform: translateY(-2px);
         }
-        
-        .expand-bookmarks.visible {
-            opacity: 1;
-        }
-        
-        /* 右键菜单 */
-        .context-menu {
-            position: fixed;
-            background: rgba(0, 0, 0, 0.9);
-            border-radius: 5px;
-            padding: 10px 0;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            z-index: 1001;
-            display: none;
-            min-width: 150px;
-        }
-        
-        .context-menu-item {
-            padding: 8px 15px;
-            cursor: pointer;
-            color: white;
-            transition: background 0.3s;
-        }
-        
-        .context-menu-item:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .context-menu-divider {
-            height: 1px;
-            background: rgba(255, 255, 255, 0.2);
-            margin: 5px 0;
-        }
-        
-        /* 壁纸相关样式 */
-        .wallpaper-preview {
-            width: 100%;
-            max-height: 200px;
-            margin-top: 10px;
-            border-radius: 5px;
-            overflow: hidden;
-            display: none;
-        }
-        
-        .wallpaper-preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        /* 帮助模态框 */
-        .help-content {
-            max-height: 60vh;
-            overflow-y: auto;
-            margin-bottom: 1rem;
-        }
-        
-        .help-content h3 {
-            margin: 1rem 0 0.5rem;
-            color: #333;
-        }
-        
-        .help-content ul {
-            padding-left: 1.5rem;
-            color: #555;
-        }
-        
-        .help-content li {
-            margin-bottom: 0.5rem;
-        }
-        
-        /* 调试信息容器 */
-        .debug-container {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            border-radius: 5px;
-            padding: 10px;
-            max-width: 400px;
-            max-height: 300px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 0.8rem;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-        
-        .debug-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-            padding-bottom: 5px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        .debug-title {
-            font-weight: bold;
-        }
-        
-        .debug-controls {
-            display: flex;
-            gap: 5px;
-        }
-        
-        .debug-toggle {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-        
-        .debug-info {
-            max-height: 200px;
-            overflow-y: auto;
-        }
-        
-        .debug-slider-container {
+
+        .user-info {
             display: flex;
             align-items: center;
             gap: 10px;
+        }
+
+        .user-welcome {
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .logout-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+        }
+
+        .logout-btn:hover {
+            background: #d32f2f;
+            transform: translateY(-2px);
+        }
+
+        .page-title {
+            color: #fff;
+            margin: 0;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        /* 壁纸上传区域 */
+        .wallpaper-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .section-title {
+            color: #fff;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .upload-form {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .file-input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .upload-btn {
+            background: #FF9800;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+        }
+
+        .upload-btn:hover {
+            background: #F57C00;
+            transform: translateY(-2px);
+        }
+
+        /* 书签区域 */
+        .bookmarks-section {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .bookmarks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .bookmark-item {
+            background: rgba(255, 255, 255, 0.15);
+            padding: 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .bookmark-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .bookmark-link {
+            color: #fff;
+            text-decoration: none;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .bookmark-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 16px;
+        }
+
+        .bookmark-url {
+            font-size: 12px;
+            color: #ccc;
+            word-break: break-all;
+            opacity: 0.8;
+        }
+
+        .bookmark-actions {
+            display: flex;
+            gap: 8px;
             margin-top: 10px;
         }
-        
-        .debug-slider {
-            flex: 1;
+
+        /* 表单样式 */
+        .add-bookmark-form {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
-        
-        .debug-collapsed .debug-info {
-            display: none;
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
         }
-        
-        .debug-collapsed .debug-slider-container {
-            display: none;
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
         }
-        
-        .debug-hidden {
-            display: none;
+
+        .form-label {
+            color: #fff;
+            margin-bottom: 5px;
+            font-weight: bold;
         }
-        
-        /* 拖拽状态 */
-        .dragging {
-            opacity: 0.5;
+
+        .form-input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
         }
-        
+
+        .add-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+            height: fit-content;
+        }
+
+        .add-btn:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        /* 按钮通用样式 */
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            font-family: 'Microsoft JhengHei', Arial, sans-serif;
+        }
+
+        .btn-edit {
+            background: #2196F3;
+            color: white;
+        }
+
+        .btn-edit:hover {
+            background: #1976D2;
+        }
+
+        .btn-delete {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-delete:hover {
+            background: #d32f2f;
+        }
+
+        .btn-debug {
+            background: #9C27B0;
+            color: white;
+        }
+
+        .btn-debug:hover {
+            background: #7B1FA2;
+        }
+
+        /* 调试信息 */
+        .debug-info {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .debug-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .debug-result {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
         /* 响应式设计 */
         @media (max-width: 768px) {
-            .bookmarks-bar {
-                gap: 10px;
+            .top-nav {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
             }
-            
-            .bookmark-item {
-                padding: 6px 12px;
-                font-size: 0.9rem;
+
+            .nav-left, .nav-right {
+                justify-content: center;
             }
-            
-            .guest-welcome h1 {
-                font-size: 2rem;
+
+            .form-grid {
+                grid-template-columns: 1fr;
             }
-            
-            .guest-welcome p {
-                font-size: 1rem;
+
+            .upload-form {
+                flex-direction: column;
+                align-items: stretch;
             }
-            
-            .user-welcome h2 {
-                font-size: 2rem;
+
+            .file-input {
+                min-width: auto;
             }
-            
-            .user-welcome p {
-                font-size: 1rem;
+
+            .bookmarks-grid {
+                grid-template-columns: 1fr;
             }
+        }
+
+        /* 欢迎页面样式 */
+        .welcome-container {
+            text-align: center;
+            padding: 60px 20px;
+        }
+
+        .welcome-title {
+            color: #fff;
+            margin-bottom: 20px;
+            font-size: 28px;
+        }
+
+        .welcome-message {
+            color: #ccc;
+            margin-bottom: 30px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        /* 消息样式 */
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+
+        .message-success {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .message-error {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        /* 无内容状态 */
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #ccc;
+            grid-column: 1 / -1;
+        }
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
         }
     </style>
 </head>
 <body>
-    <!-- 数据库状态指示器 - 用户登录时隐藏 -->
-    <div class="database-status <%= dbConnected ? 'connected' : '' %> <%= user ? 'hidden' : '' %>">
-        <% if (dbConnected) { %>
-            ✅ 数据库已连接
-        <% } else { %>
-            ❌ 数据库连接失败
-        <% } %>
-    </div>
+    <div class="content-overlay">
+        <!-- 顶部导航栏 -->
+        <div class="top-nav">
+            <div class="nav-left">
+                <button class="toggle-folder-btn" id="toggleFolder">
+                    <span id="folderIcon">📁</span>
+                    <span id="folderText">收起收藏夹</span>
+                </button>
+                <h1 class="page-title">我的书签</h1>
+            </div>
+            <div class="nav-right">
+                <% if (user) { %>
+                    <div class="user-info">
+                        <span class="user-welcome">欢迎, <%= user.username %></span>
+                        <form action="/logout" method="POST" style="display: inline;">
+                            <button type="submit" class="logout-btn">登出</button>
+                        </form>
+                    </div>
+                <% } else { %>
+                    <a href="/login" class="login-btn">登录</a>
+                <% } %>
+            </div>
+        </div>
 
-    <!-- 用户信息栏 -->
-    <div class="user-info" id="userInfo">
         <% if (user) { %>
-            <span>欢迎, <%= user.username %></span>
-            <form action="/logout" method="POST" style="display: inline;">
-                <button type="submit" class="auth-btn">登出</button>
-            </form>
-        <% } else { %>
-            <a href="/login" class="auth-btn">登录</a>
-            <a href="/register" class="auth-btn">注册</a>
-        <% } %>
-    </div>
-
-    <!-- 固定在顶部的书签栏 -->
-    <div class="top-bookmarks" id="topBookmarks">
-        <div class="bookmarks-container">
-            <div class="bookmarks-bar" id="bookmarksBar">
-                <!-- 书签将通过JavaScript动态生成 -->
-            </div>
-            <div class="bookmarks-header-buttons">
-                <button class="header-btn" id="importBookmarks" title="导入收藏夹">🚩</button>
-                <button class="header-btn <%= !user && 'disabled-btn' %>" id="changeWallpaper" title="更改壁纸" <%= !user && 'disabled' %>>🖼️</button>
-                <button class="header-btn" id="helpBtn" title="使用说明">❓</button>
-                <button class="header-btn" id="collapseBtn" title="收起收藏夾">▲</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 收藏夹收起时的展开按钮 -->
-    <button class="expand-bookmarks" id="expandBookmarks" title="展開收藏夾">▼</button>
-
-    <!-- 背景容器 -->
-    <div class="background-container">
-        <div class="bg-image" id="bgImage"></div>
-    </div>
-    
-    <!-- 用户登录后的专属欢迎信息 -->
-    <% if (user) { %>
-    <div class="user-welcome" id="userWelcome">
-        <h2>欢迎回来, <%= user.username %>!</h2>
-        <p>您的个人书签已准备就绪，点击上方书签开始使用</p>
-    </div>
-    <% } else { %>
-    <!-- 访客欢迎信息 -->
-    <div class="guest-welcome">
-        <h1>欢迎使用 UEMH_HP</h1>
-        <p>这是一个简洁美观的浏览器起始页，收藏夹固定在顶部方便访问。右键点击空白区域可以添加新收藏项。</p>
-        <a href="/login" class="login-prompt">立即登录以使用完整功能</a>
-        <% if (!dbConnected) { %>
-            <p style="color: #ffa500; margin-top: 1rem;">⚠️ 数据库连接失败，部分功能可能受限</p>
-        <% } %>
-    </div>
-    <% } %>
-    
-    <!-- 右键菜单 -->
-    <div class="context-menu" id="contextMenu">
-        <div class="context-menu-item" id="addBookmark">添加新收藏</div>
-        <div class="context-menu-divider"></div>
-        <div class="context-menu-item" id="editBookmark">编辑收藏</div>
-        <div class="context-menu-item" id="deleteBookmark">删除收藏</div>
-    </div>
-    
-    <!-- 添加/编辑收藏项的模态框 -->
-    <div class="modal" id="bookmarkModal">
-        <div class="modal-content">
-            <h2 id="modalTitle">添加收藏</h2>
-            <div class="form-group">
-                <label for="bookmarkName">名称 (可选)</label>
-                <input type="text" id="bookmarkName" placeholder="输入收藏名称 (留空则仅显示图标)">
-            </div>
-            <div class="form-group">
-                <label for="bookmarkUrl">网址</label>
-                <input type="text" id="bookmarkUrl" placeholder="https://example.com">
-            </div>
-            <div class="form-group">
-                <label for="bookmarkIcon">图标 (可选 - 输入图片URL或表情符号)</label>
-                <input type="text" id="bookmarkIcon" placeholder="输入图片URL或表情符号">
-                <div class="icon-preview" id="iconPreview"></div>
-            </div>
-            <div class="modal-buttons">
-                <button class="btn btn-secondary" id="cancelBookmark">取消</button>
-                <button class="btn btn-primary" id="saveBookmark">保存</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 更改壁纸模态框 -->
-    <div class="modal" id="wallpaperModal">
-        <div class="modal-content">
-            <h2>更改壁纸</h2>
-            <div class="form-group">
-                <label for="wallpaperFile">选择壁纸图片</label>
-                <input type="file" id="wallpaperFile" accept="image/*">
-                <div class="wallpaper-preview" id="wallpaperPreview">
-                    <img id="wallpaperPreviewImg" src="" alt="壁纸预览">
+            <!-- 壁纸上传区域 -->
+            <div class="wallpaper-section">
+                <h3 class="section-title">个性化设置</h3>
+                <form class="upload-form" id="wallpaperForm" enctype="multipart/form-data">
+                    <input type="file" name="wallpaper" accept="image/*" required class="file-input">
+                    <button type="submit" class="upload-btn">上传壁纸</button>
+                </form>
+                <div id="uploadResult"></div>
+                
+                <!-- 调试信息 -->
+                <div class="debug-info">
+                    <h4 style="color: #fff; margin-bottom: 10px;">调试信息</h4>
+                    <p>用户ID: <code><%= user.id %></code></p>
+                    <p>当前壁纸: <span id="currentWallpaper">
+                        <% if (settings && settings.wallpaper) { %>
+                            <code><%= settings.wallpaper %></code>
+                        <% } else { %>
+                            <em>默认壁纸</em>
+                        <% } %>
+                    </span></p>
+                    <div class="debug-actions">
+                        <button class="btn btn-debug" onclick="checkSettings()">检查设置</button>
+                        <button class="btn btn-debug" onclick="clearCache()">清除缓存</button>
+                        <button class="btn btn-debug" onclick="testSync()">测试同步</button>
+                    </div>
+                    <div id="settingsInfo" class="debug-result"></div>
                 </div>
             </div>
-            <div class="modal-buttons">
-                <button class="btn btn-secondary" id="cancelWallpaper">取消</button>
-                <button class="btn btn-primary" id="saveWallpaper">确定更换</button>
-            </div>
-        </div>
-    </div>
 
-    <!-- 帮助说明模态框 -->
-    <div class="modal" id="helpModal">
-        <div class="modal-content">
-            <div class="help-content">
-                <h2>歡迎使用主頁</h2>
-                <p>這是一個簡潔美觀的瀏覽器起始頁，收藏夾固定在頂部方便訪問</p>
+            <!-- 添加书签表单 -->
+            <div class="add-bookmark-form">
+                <h3 class="section-title">添加新书签</h3>
+                <form id="addBookmarkForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">书签名称</label>
+                            <input type="text" name="name" required class="form-input" placeholder="输入书签名称">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">网址</label>
+                            <input type="url" name="url" required class="form-input" placeholder="https://example.com">
+                        </div>
+                        <button type="submit" class="add-btn">添加书签</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- 书签列表区域 -->
+            <div class="bookmarks-section" id="bookmarksSection">
+                <h3 class="section-title">我的收藏夹</h3>
                 
-                <h3>使用說明</h3>
-                <ul>
-                    <li>左键点击 - 访问网站</li>
-                    <li>左键拖拽 - 重新排序收藏项</li>
-                    <li>右键点击收藏项 - 编辑或删除</li>
-                    <li>右键点击空白区域 - 添加新收藏项</li>
-                    <li>所有更改会自动保存在浏览器本地存储中</li>
-                    <li>收藏项可以仅显示图标，无需名称</li>
-                    <li>添加书签时如果不提供图标，系统会自动尝试获取网站图标</li>
-                    <% if (user) { %>
-                        <li>当前用户: <strong><%= user.username %></strong></li>
+                <!-- 书签列表 -->
+                <div class="bookmarks-grid" id="bookmarksContainer">
+                    <% if (bookmarks && bookmarks.length > 0) { %>
+                        <% bookmarks.forEach(function(bookmark) { %>
+                            <div class="bookmark-item" data-id="<%= bookmark._id %>">
+                                <a href="<%= bookmark.url %>" target="_blank" class="bookmark-link">
+                                    <div class="bookmark-name"><%= bookmark.name %></div>
+                                    <div class="bookmark-url"><%= bookmark.url %></div>
+                                </a>
+                                <div class="bookmark-actions">
+                                    <button class="btn btn-edit" onclick="editBookmark('<%= bookmark._id %>', '<%= bookmark.name %>', '<%= bookmark.url %>')">编辑</button>
+                                    <button class="btn btn-delete" onclick="deleteBookmark('<%= bookmark._id %>')">删除</button>
+                                </div>
+                            </div>
+                        <% }); %>
                     <% } else { %>
-                        <li><a href="/login" style="color: #4FC3F7;">点击登录</a>以使用更改壁纸功能</li>
+                        <div class="empty-state">
+                            <div class="empty-icon">📑</div>
+                            <p>暂无书签，请添加您的第一个书签</p>
+                        </div>
                     <% } %>
-                    <% if (!dbConnected) { %>
-                        <li style="color: #ffa500;">⚠️ 数据库连接失败，部分功能受限</li>
-                    <% } %>
-                </ul>
-                
-                <h3>默认账号</h3>
-                <p>用户名: <strong>UEMH-CHAN</strong><br>密码: <strong>041018</strong></p>
+                </div>
             </div>
-            <div class="modal-buttons">
-                <button class="btn btn-primary" id="closeHelp">关闭</button>
-            </div>
-        </div>
-    </div>
 
-    <!-- 调试信息容器 -->
-    <div class="debug-container" id="debugContainer">
-        <div class="debug-header" id="debugHeader">
-            <div class="debug-title">调试信息</div>
-            <div class="debug-controls">
-                <button class="debug-toggle" id="debugToggle">−</button>
-                <button class="debug-toggle" id="debugHide">×</button>
+        <% } else { %>
+            <!-- 未登录状态显示欢迎页面 -->
+            <div class="welcome-container">
+                <h1 class="welcome-title">欢迎使用书签管理系统</h1>
+                <p class="welcome-message">
+                    这是一个功能强大的个人书签管理工具，<br>
+                    帮助您随时随地访问和管理您喜爱的网站。
+                </p>
+                <a href="/login" class="login-btn" style="padding: 12px 30px; font-size: 16px;">立即登录</a>
+                <div style="margin-top: 20px;">
+                    <a href="/register" style="color: #2196F3; text-decoration: none;">还没有账号？立即注册</a>
+                </div>
             </div>
-        </div>
-        <div class="debug-info" id="debugInfo"></div>
-        <div class="debug-slider-container">
-            <span>透明度:</span>
-            <input type="range" min="0" max="100" value="70" class="debug-slider" id="debugOpacity">
-        </div>
+        <% } %>
     </div>
 
     <script>
-        // 初始收藏项数据
-        const defaultBookmarks = [
-            { id: 1, name: "Google", url: "https://www.google.com", icon: "https://www.google.com/favicon.ico" },
-            { id: 2, name: "YouTube", url: "https://www.youtube.com", icon: "https://www.youtube.com/favicon.ico" },
-            { id: 3, name: "GitHub", url: "https://github.com", icon: "https://github.com/favicon.ico" },
-            { id: 4, name: "", url: "https://homdgcat.wiki/sr/char?lang=CH", icon: "https://favicon.is/homdgcat.wiki" },
-            { id: 5, name: "表情符号", url: "https://example.com", icon: "🔍" }
-        ];
-
-        // DOM元素
-        let topBookmarks, bookmarksBar, contextMenu, bookmarkModal, helpModal, wallpaperModal;
-        let modalTitle, bookmarkName, bookmarkUrl, bookmarkIcon, iconPreview;
-        let saveBookmarkBtn, cancelBookmarkBtn, addBookmarkBtn, editBookmarkBtn, deleteBookmarkBtn;
-        let importBookmarksBtn, helpBtn, collapseBtn, expandBookmarks, content, closeHelp;
-        let changeWallpaperBtn, wallpaperFile, wallpaperPreview, cancelWallpaperBtn, saveWallpaperBtn;
-        let debugContainer, debugInfo, debugToggle, debugHide, debugOpacity, debugHeader;
-        let userInfo, databaseStatus;
-
-        // 全局变量
-        let bookmarks = [];
-        let currentBookmarkId = null;
-        let isEditing = false;
-        let isDebugCollapsed = false;
-        let isDebugHidden = false;
-        let fadeTimer;
-
-        // 展开按钮透明度交互
-        function resetFadeTimer() {
-            // 清除之前的计时器
-            if (fadeTimer) clearTimeout(fadeTimer);
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 页面加载完成');
+            console.log('👤 当前用户:', '<%= user ? user.username : "未登录" %>');
+            console.log('🎨 壁纸设置:', '<%= settings ? settings.wallpaper : "无" %>');
+            console.log('📚 书签数量:', '<%= bookmarks ? bookmarks.length : 0 %>');
             
-            // 按钮完全显示
-            expandBookmarks.classList.add('visible');
-            expandBookmarks.style.opacity = '1';
-            
-            // 设置3秒后恢复半透明
-            fadeTimer = setTimeout(() => {
-                expandBookmarks.classList.remove('visible');
-                expandBookmarks.style.opacity = '0.3';
-            }, 3000);
-        }
-
-        // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            debug('DOM加载完成，开始初始化');
-            
-            // 初始化DOM元素
-            initDOMElements();
-            
-            // 设置展开按钮的事件监听
-            if (expandBookmarks) {
-                // 当用户移动鼠标时
-                document.addEventListener('mousemove', resetFadeTimer);
-                // 当用户滚动页面时
-                document.addEventListener('scroll', resetFadeTimer);
-            }
-            
-            // 加载收藏项
-            loadBookmarks();
-            renderBookmarks();
-            setupEventListeners();
-            loadCollapseState();
-            setupDebugControls();
-            
-            // 检查用户登录状态并设置数据库状态显示
-            updateDatabaseStatusVisibility();
-            
-            debug('初始化完成');
-            
-            // 如果用户已登录，3秒后隐藏欢迎信息
-            <% if (user) { %>
-            setTimeout(() => {
-                const userWelcome = document.getElementById('userWelcome');
-                if (userWelcome) {
-                    userWelcome.style.opacity = '0';
-                    userWelcome.style.transition = 'opacity 1s ease';
-                    setTimeout(() => {
-                        userWelcome.style.display = 'none';
-                    }, 1000);
-                }
-            }, 3000);
-            <% } %>
-        });
-
-        // 初始化DOM元素
-        function initDOMElements() {
-            debug('初始化DOM元素');
-            
-            topBookmarks = document.getElementById('topBookmarks');
-            bookmarksBar = document.getElementById('bookmarksBar');
-            contextMenu = document.getElementById('contextMenu');
-            bookmarkModal = document.getElementById('bookmarkModal');
-            helpModal = document.getElementById('helpModal');
-            wallpaperModal = document.getElementById('wallpaperModal');
-            
-            modalTitle = document.getElementById('modalTitle');
-            bookmarkName = document.getElementById('bookmarkName');
-            bookmarkUrl = document.getElementById('bookmarkUrl');
-            bookmarkIcon = document.getElementById('bookmarkIcon');
-            iconPreview = document.getElementById('iconPreview');
-            saveBookmarkBtn = document.getElementById('saveBookmark');
-            cancelBookmarkBtn = document.getElementById('cancelBookmark');
-            addBookmarkBtn = document.getElementById('addBookmark');
-            editBookmarkBtn = document.getElementById('editBookmark');
-            deleteBookmarkBtn = document.getElementById('deleteBookmark');
-            importBookmarksBtn = document.getElementById('importBookmarks');
-            helpBtn = document.getElementById('helpBtn');
-            collapseBtn = document.getElementById('collapseBtn');
-            expandBookmarks = document.getElementById('expandBookmarks');
-            closeHelp = document.getElementById('closeHelp');
-            
-            // 壁纸相关元素
-            changeWallpaperBtn = document.getElementById('changeWallpaper');
-            wallpaperFile = document.getElementById('wallpaperFile');
-            wallpaperPreview = document.getElementById('wallpaperPreview');
-            cancelWallpaperBtn = document.getElementById('cancelWallpaper');
-            saveWallpaperBtn = document.getElementById('saveWallpaper');
-            
-            // 调试相关元素
-            debugContainer = document.getElementById('debugContainer');
-            debugInfo = document.getElementById('debugInfo');
-            debugToggle = document.getElementById('debugToggle');
-            debugHide = document.getElementById('debugHide');
-            debugOpacity = document.getElementById('debugOpacity');
-            debugHeader = document.getElementById('debugHeader');
-            
-            // 新增元素
-            userInfo = document.getElementById('userInfo');
-            databaseStatus = document.querySelector('.database-status');
-            
-            debug('DOM元素初始化完成');
-        }
-
-        // 更新数据库状态显示
-        function updateDatabaseStatusVisibility() {
-            <% if (user) { %>
-            // 用户已登录，隐藏数据库状态
-            if (databaseStatus) {
-                databaseStatus.classList.add('hidden');
-                debug('用户已登录，隐藏数据库状态指示器');
-            }
-            <% } else { %>
-            // 用户未登录，显示数据库状态
-            if (databaseStatus) {
-                databaseStatus.classList.remove('hidden');
-                debug('用户未登录，显示数据库状态指示器');
-            }
-            <% } %>
-        }
-
-        // 设置事件监听器
-        function setupEventListeners() {
-            debug('开始设置事件监听器');
-            
-            // 点击其他地方隐藏右键菜单
-            document.addEventListener('click', () => {
-                contextMenu.style.display = 'none';
-            });
-            
-            // 右键菜单选项
-            addBookmarkBtn.addEventListener('click', () => {
-                contextMenu.style.display = 'none';
-                showBookmarkModal();
-                debug('点击添加收藏项按钮');
-            });
-            
-            editBookmarkBtn.addEventListener('click', () => {
-                contextMenu.style.display = 'none';
-                showBookmarkModal(true);
-                debug('点击编辑收藏项按钮');
-            });
-            
-            deleteBookmarkBtn.addEventListener('click', () => {
-                contextMenu.style.display = 'none';
-                deleteBookmark();
-                debug('点击删除收藏项按钮');
-            });
-            
-            // 模态框按钮
-            saveBookmarkBtn.addEventListener('click', saveBookmark);
-            debug('保存收藏项按钮事件监听器已设置');
-            
-            cancelBookmarkBtn.addEventListener('click', () => {
-                bookmarkModal.style.display = 'none';
-                debug('点击取消按钮');
-            });
-            
-            // 图标预览
-            bookmarkIcon.addEventListener('input', updateIconPreview);
-            debug('图标预览事件监听器已设置');
-            
-            // 导入功能
-            importBookmarksBtn.addEventListener('click', function() {
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.accept = '.html';
-                fileInput.onchange = function(e) {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        const content = e.target.result;
-                        parseBookmarksHTML(content);
-                    };
-                    reader.readAsText(file);
-                    debug('选择文件: ' + file.name);
-                };
-                fileInput.click();
-            });
-            
-            // 壁纸功能
-            changeWallpaperBtn.addEventListener('click', showWallpaperModal);
-            cancelWallpaperBtn.addEventListener('click', hideWallpaperModal);
-            saveWallpaperBtn.addEventListener('click', uploadWallpaper);
-            wallpaperFile.addEventListener('change', previewWallpaper);
-            
-            // 帮助按钮
-            helpBtn.addEventListener('click', () => {
-                helpModal.style.display = 'flex';
-                debug('点击帮助按钮');
-            });
-            
-            closeHelp.addEventListener('click', () => {
-                helpModal.style.display = 'none';
-                debug('点击关闭帮助按钮');
-            });
-            
-            // 收起/展开功能
-            collapseBtn.addEventListener('click', collapseBookmarks);
-            expandBookmarks.addEventListener('click', expandBookmarksFunc);
-            debug('收起/展开按钮事件监听器已设置');
-            
-            debug('所有事件监听器设置完成');
-        }
-
-        // 显示壁纸模态框
-        function showWallpaperModal() {
-            <% if (!user) { %>
-                alert('请先登录以使用壁纸更改功能');
-                return;
-            <% } %>
-            wallpaperModal.style.display = 'flex';
-            wallpaperFile.value = '';
-            wallpaperPreview.style.display = 'none';
-            debug('显示更改壁纸模态框');
-        }
-
-        // 隐藏壁纸模态框
-        function hideWallpaperModal() {
-            wallpaperModal.style.display = 'none';
-            debug('隐藏更改壁纸模态框');
-        }
-
-        // 预览壁纸
-        function previewWallpaper(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const previewImg = document.getElementById('wallpaperPreviewImg');
-                    previewImg.src = e.target.result;
-                    wallpaperPreview.style.display = 'block';
-                };
-                reader.readAsDataURL(file);
-                debug('壁纸预览已更新');
-            }
-        }
-
-        // 上传壁纸
-        function uploadWallpaper() {
-            const file = wallpaperFile.files[0];
-            if (!file) {
-                alert('请选择壁纸图片');
-                return;
-            }
-
-            const formData = new FormData();
-            formData.append('wallpaper', file);
-
-            fetch('/upload-wallpaper', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // 更新背景图片
-                    document.getElementById('bgImage').style.backgroundImage = `url('${data.wallpaperUrl}')`;
-                    
-                    // 保存到用户专属存储
-                    const userId = '<%= user ? user.id : "anonymous" %>';
-                    const userWallpaperKey = `customWallpaper_${userId}`;
-                    localStorage.setItem(userWallpaperKey, data.wallpaperUrl);
-                    
-                    alert('壁纸更换成功！');
-                    hideWallpaperModal();
-                    debug('壁纸更换成功: ' + data.wallpaperUrl);
-                } else {
-                    alert('壁纸上传失败: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('壁纸上传错误:', error);
-                alert('壁纸上传失败');
-            });
-        }
-
-        // 加载收藏项 - 按用户隔离
-        function loadBookmarks() {
-            const userId = '<%= user ? user.id : "anonymous" %>';
-            const userSpecificKey = `customBookmarks_${userId}`;
-            const savedBookmarks = localStorage.getItem(userSpecificKey);
-            
-            if (savedBookmarks) {
-                bookmarks = JSON.parse(savedBookmarks);
-                debug('从用户专属存储加载收藏项: ' + bookmarks.length + ' 项');
-            } else {
-                bookmarks = [...defaultBookmarks];
-                saveBookmarks();
-                debug('使用默认收藏项');
-            }
-            
-            // 加载用户专属壁纸
-            const userWallpaperKey = `customWallpaper_${userId}`;
-            const customWallpaper = localStorage.getItem(userWallpaperKey);
-            if (customWallpaper) {
-                document.getElementById('bgImage').style.backgroundImage = `url('${customWallpaper}')`;
-                debug('加载用户专属壁纸');
-            } else {
-                // 新用户使用默认壁纸（无）
-                document.getElementById('bgImage').style.backgroundImage = '';
-                debug('使用默认壁纸');
-            }
-        }
-
-        // 保存收藏项到本地存储 - 按用户隔离
-        function saveBookmarks() {
-            const userId = '<%= user ? user.id : "anonymous" %>';
-            const userSpecificKey = `customBookmarks_${userId}`;
-            localStorage.setItem(userSpecificKey, JSON.stringify(bookmarks));
-            debug('保存收藏项到用户专属存储: ' + bookmarks.length + ' 项');
-        }
-
-        // 渲染收藏项
-        function renderBookmarks() {
-            bookmarksBar.innerHTML = '';
-            
-            bookmarks.forEach(bookmark => {
-                const bookmarkElement = document.createElement('div');
-                bookmarkElement.className = 'bookmark-item';
-                bookmarkElement.setAttribute('data-id', bookmark.id);
-                bookmarkElement.draggable = true;
-                
-                let iconHTML = '';
-                if (bookmark.icon) {
-                    if (bookmark.icon.startsWith('http')) {
-                        iconHTML = `
-                            <div class="icon-container">
-                                <img src="${bookmark.icon}" class="bookmark-icon" alt="${bookmark.name}" onerror="handleIconError(this)">
-                            </div>
-                        `;
-                    } else {
-                        iconHTML = `
-                            <div class="icon-container">
-                                <span class="emoji-icon">${bookmark.icon}</span>
-                            </div>
-                        `;
-                    }
-                } else {
-                    iconHTML = `
-                        <div class="icon-container">
-                            <span class="emoji-icon">🔗</span>
-                        </div>
-                    `;
-                }
-                
-                if (!bookmark.name || bookmark.name.trim() === '') {
-                    bookmarkElement.innerHTML = `
-                        <a href="${bookmark.url}" target="_blank" title="${bookmark.url}">${iconHTML}</a>
-                    `;
-                } else {
-                    bookmarkElement.innerHTML = `
-                        ${iconHTML}
-                        <a href="${bookmark.url}" target="_blank">${bookmark.name}</a>
-                    `;
-                }
-                
-                bookmarksBar.appendChild(bookmarkElement);
-            });
-            
-            setupBookmarkEvents();
-            debug('渲染收藏项完成: ' + bookmarks.length + ' 项');
-        }
-
-        // 处理图标加载错误
-        function handleIconError(imgElement) {
-            const container = imgElement.parentNode;
-            container.innerHTML = '<span class="emoji-icon">❌</span>';
-            debug('图标加载失败，显示错误图标');
-        }
-
-        // 设置收藏项事件监听
-        function setupBookmarkEvents() {
-            const bookmarkItems = document.querySelectorAll('.bookmark-item');
-            
-            bookmarkItems.forEach(item => {
-                item.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    
-                    const id = parseInt(item.getAttribute('data-id'));
-                    const bookmark = bookmarks.find(b => b.id === id);
-                    if (bookmark) {
-                        window.open(bookmark.url, '_blank');
-                        debug('打开链接: ' + bookmark.url);
-                    }
-                });
-                
-                item.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    currentBookmarkId = parseInt(item.getAttribute('data-id'));
-                    
-                    contextMenu.style.display = 'block';
-                    contextMenu.style.left = `${e.pageX}px`;
-                    contextMenu.style.top = `${e.pageY}px`;
-                    
-                    addBookmarkBtn.style.display = 'none';
-                    editBookmarkBtn.style.display = 'block';
-                    deleteBookmarkBtn.style.display = 'block';
-                    
-                    debug('显示右键菜单 - 编辑收藏项 ID: ' + currentBookmarkId);
-                });
-                
-                // 拖拽事件
-                item.addEventListener('dragstart', (e) => {
-                    item.classList.add('dragging');
-                    e.dataTransfer.setData('text/plain', item.getAttribute('data-id'));
-                    debug('开始拖拽收藏项 ID: ' + item.getAttribute('data-id'));
-                });
-                
-                item.addEventListener('dragend', () => {
-                    item.classList.remove('dragging');
-                    debug('结束拖拽收藏项');
-                });
-                
-                item.addEventListener('dragover', (e) => {
-                    e.preventDefault();
-                });
-                
-                item.addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    const draggedId = parseInt(e.dataTransfer.getData('text/plain'));
-                    const targetId = parseInt(item.getAttribute('data-id'));
-                    
-                    if (draggedId !== targetId) {
-                        moveBookmark(draggedId, targetId);
-                    }
-                });
-            });
-            
-            bookmarksBar.addEventListener('contextmenu', (e) => {
-                if (e.target === bookmarksBar) {
-                    e.preventDefault();
-                    currentBookmarkId = null;
-                    
-                    contextMenu.style.display = 'block';
-                    contextMenu.style.left = `${e.pageX}px`;
-                    contextMenu.style.top = `${e.pageY}px`;
-                    
-                    addBookmarkBtn.style.display = 'block';
-                    editBookmarkBtn.style.display = 'none';
-                    deleteBookmarkBtn.style.display = 'none';
-                    
-                    debug('显示右键菜单 - 添加新收藏项');
-                }
-            });
-            
-            debug('收藏项事件监听设置完成: ' + bookmarkItems.length + ' 项');
-        }
-
-        // 移动收藏项
-        function moveBookmark(draggedId, targetId) {
-            const draggedIndex = bookmarks.findIndex(b => b.id === draggedId);
-            const targetIndex = bookmarks.findIndex(b => b.id === targetId);
-            
-            if (draggedIndex !== -1 && targetIndex !== -1) {
-                const [draggedItem] = bookmarks.splice(draggedIndex, 1);
-                bookmarks.splice(targetIndex, 0, draggedItem);
-                
-                saveBookmarks();
-                renderBookmarks();
-                debug('移动收藏项: ID ' + draggedId + ' 移动到位置 ' + targetIndex);
-            }
-        }
-
-        // 收起收藏栏
-        function collapseBookmarks() {
-            topBookmarks.classList.add('collapsed');
-            debugContainer.classList.add('debug-hidden');
-            isDebugHidden = true;
-            expandBookmarks.style.display = 'block';
-            
-            // 显示后立即触发一次重置计时
-            resetFadeTimer();
-            
-            // 隐藏用户信息栏
-            if (userInfo) {
-                userInfo.classList.add('hidden');
-            }
-            
-            saveCollapseState();
-            debug('收起收藏栏并隐藏调试窗口和用户信息栏');
-        }
-
-        // 展开收藏栏
-        function expandBookmarksFunc() {
-            topBookmarks.classList.remove('collapsed');
-            debugContainer.classList.remove('debug-hidden');
-            isDebugHidden = false;
-            expandBookmarks.style.display = 'none';
-            
-            // 显示用户信息栏
-            if (userInfo) {
-                userInfo.classList.remove('hidden');
-            }
-            
-            saveCollapseState();
-            debug('展开收藏栏并显示调试窗口和用户信息栏');
-        }
-
-        // 更新图标预览
-        function updateIconPreview() {
-            const iconValue = bookmarkIcon.value.trim();
-            iconPreview.innerHTML = '';
-            
-            if (iconValue) {
-                if (iconValue.startsWith('http')) {
-                    const img = document.createElement('img');
-                    img.src = iconValue;
-                    img.className = 'bookmark-icon';
-                    img.style.width = '100%';
-                    img.style.height = '100%';
-                    img.onerror = function() {
-                        iconPreview.innerHTML = '❌';
-                        debug('图标加载失败: ' + iconValue);
-                    };
-                    iconPreview.appendChild(img);
-                    debug('设置图标URL: ' + iconValue);
-                } else {
-                    iconPreview.innerHTML = iconValue;
-                    debug('设置图标表情: ' + iconValue);
-                }
-            }
-        }
-
-        // 显示添加/编辑收藏项模态框
-        function showBookmarkModal(edit = false) {
-            isEditing = edit;
-            
-            if (edit && currentBookmarkId) {
-                modalTitle.textContent = '编辑收藏';
-                const bookmark = bookmarks.find(b => b.id === currentBookmarkId);
-                if (bookmark) {
-                    bookmarkName.value = bookmark.name;
-                    bookmarkUrl.value = bookmark.url;
-                    bookmarkIcon.value = bookmark.icon || '';
-                    updateIconPreview();
-                }
-                debug('显示编辑收藏项模态框 - ID: ' + currentBookmarkId);
-            } else {
-                modalTitle.textContent = '添加收藏';
-                bookmarkName.value = '';
-                bookmarkUrl.value = '';
-                bookmarkIcon.value = '';
-                updateIconPreview();
-                debug('显示添加收藏项模态框');
-            }
-            
-            bookmarkModal.style.display = 'flex';
-        }
-
-        // 保存收藏项
-        async function saveBookmark() {
-            const name = bookmarkName.value.trim();
-            const url = bookmarkUrl.value.trim();
-            const icon = bookmarkIcon.value.trim();
-            
-            if (!url) {
-                alert('请填写网址');
-                debug('保存失败: 网址为空');
-                return;
-            }
-            
-            let formattedUrl = url;
-            if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                formattedUrl = 'https://' + url;
-            }
-            
-            let finalIcon = icon;
-            
-            if (!finalIcon) {
-                debug('未提供图标，尝试自动获取网站图标');
-                finalIcon = await getFavicon(formattedUrl);
-            }
-            
-            if (isEditing && currentBookmarkId) {
-                const index = bookmarks.findIndex(b => b.id === currentBookmarkId);
-                if (index !== -1) {
-                    bookmarks[index].name = name;
-                    bookmarks[index].url = formattedUrl;
-                    bookmarks[index].icon = finalIcon;
-                    debug('更新收藏项 - ID: ' + currentBookmarkId);
-                }
-            } else {
-                const newId = bookmarks.length > 0 ? Math.max(...bookmarks.map(b => b.id)) + 1 : 1;
-                bookmarks.push({
-                    id: newId,
-                    name,
-                    url: formattedUrl,
-                    icon: finalIcon
-                });
-                debug('添加新收藏项 - ID: ' + newId);
-            }
-            
-            saveBookmarks();
-            renderBookmarks();
-            bookmarkModal.style.display = 'none';
-        }
-
-        // 获取网站图标
-        async function getFavicon(url) {
-            try {
-                const domain = new URL(url).hostname;
-                const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-                
-                return await new Promise((resolve) => {
-                    const img = new Image();
-                    img.onload = () => {
-                        debug('成功获取网站图标: ' + faviconUrl);
-                        resolve(faviconUrl);
-                    };
-                    img.onerror = () => {
-                        debug('无法获取网站图标，使用默认图标');
-                        resolve('❌');
-                    };
-                    img.src = faviconUrl;
-                });
-            } catch (error) {
-                debug('获取网站图标时出错: ' + error);
-                return '❌';
-            }
-        }
-
-        // 删除收藏项
-        function deleteBookmark() {
-            if (currentBookmarkId && confirm('确定要删除这个收藏项吗？')) {
-                bookmarks = bookmarks.filter(b => b.id !== currentBookmarkId);
-                saveBookmarks();
-                renderBookmarks();
-                debug('删除收藏项 - ID: ' + currentBookmarkId);
-            }
-        }
-
-        // 解析书签HTML文件
-        function parseBookmarksHTML(html) {
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            
-            const links = doc.querySelectorAll('a');
-            bookmarks = [];
-            
-            links.forEach(link => {
-                const href = link.getAttribute('href');
-                const text = link.textContent;
-                
-                if (href && href.startsWith('http')) {
-                    const newId = bookmarks.length > 0 ? Math.max(...bookmarks.map(b => b.id)) + 1 : 1;
-                    bookmarks.push({
-                        id: newId,
-                        name: text.length > 20 ? text.substring(0, 20) : text,
-                        url: href,
-                        icon: '🔗'
-                    });
-                }
-            });
-            
-            if (bookmarks.length === 0) {
-                bookmarks = [...defaultBookmarks];
-                alert('未找到書簽或文件格式不正確，已恢復默認書籤');
-                debug('导入失败: 未找到有效书签，恢复默认');
-            } else {
-                debug('成功导入书签: ' + bookmarks.length + ' 项');
-            }
-            
-            saveBookmarks();
-            renderBookmarks();
-        }
-
-        // 加载收起状态
-        function loadCollapseState() {
+            // 初始化收藏夹状态
             const isCollapsed = localStorage.getItem('bookmarksCollapsed') === 'true';
             if (isCollapsed) {
                 collapseBookmarks();
-                debug('加载收起状态: 已收起');
-            } else {
-                expandBookmarks.style.display = 'none';
-                debug('加载收起状态: 未收起');
             }
-            
-            const isDebugHidden = localStorage.getItem('debugHidden') === 'true';
-            if (isDebugHidden) {
-                debugContainer.classList.add('debug-hidden');
-                debugHide.textContent = '+';
-                isDebugHidden = true;
-                debug('加载调试窗口状态: 已隐藏');
-            }
-        }
+        });
 
-        // 保存收起状态
-        function saveCollapseState() {
-            localStorage.setItem('bookmarksCollapsed', topBookmarks.classList.contains('collapsed'));
-            debug('保存收起状态: ' + (topBookmarks.classList.contains('collapsed') ? '已收起' : '未收起'));
-            
-            localStorage.setItem('debugHidden', isDebugHidden);
-        }
-
-        // 设置调试窗口控制
-        function setupDebugControls() {
-            debugOpacity.addEventListener('input', function() {
-                const opacity = this.value / 100;
-                debugContainer.style.opacity = opacity;
-                debug('设置调试窗口透明度: ' + (opacity * 100) + '%');
-            });
-            
-            debugToggle.addEventListener('click', function() {
-                if (isDebugCollapsed) {
-                    debugContainer.classList.remove('debug-collapsed');
-                    debugToggle.textContent = '−';
-                    isDebugCollapsed = false;
-                    debug('展开调试窗口');
-                } else {
-                    debugContainer.classList.add('debug-collapsed');
-                    debugToggle.textContent = '+';
-                    isDebugCollapsed = true;
-                    debug('折叠调试窗口');
-                }
-            });
-            
-            debugHide.addEventListener('click', function() {
-                if (isDebugHidden) {
-                    debugContainer.classList.remove('debug-hidden');
-                    debugHide.textContent = '×';
-                    isDebugHidden = false;
-                    debug('显示调试窗口');
-                } else {
-                    debugContainer.classList.add('debug-hidden');
-                    debugHide.textContent = '+';
-                    isDebugHidden = true;
-                    debug('隐藏调试窗口');
-                }
-            });
-            
-            makeElementDraggable(debugContainer, debugHeader);
-            debug('调试窗口控制设置完成');
-        }
-
-        // 使元素可拖动
-        function makeElementDraggable(element, handle) {
-            let isDragging = false;
-            let startX, startY, initialX, initialY;
-            
-            handle.addEventListener('mousedown', startDrag);
-            document.addEventListener('mousemove', drag);
-            document.addEventListener('mouseup', stopDrag);
-            
-            function startDrag(e) {
-                isDragging = true;
-                const rect = element.getBoundingClientRect();
-                initialX = rect.left;
-                initialY = rect.top;
-                startX = e.clientX;
-                startY = e.clientY;
+        // 壁纸上传功能
+        const wallpaperForm = document.getElementById('wallpaperForm');
+        if (wallpaperForm) {
+            wallpaperForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
-                debug('开始拖动调试窗口');
-            }
-            
-            function drag(e) {
-                if (!isDragging) return;
-                const dx = e.clientX - startX;
-                const dy = e.clientY - startY;
-                element.style.transform = `translate(${dx}px, ${dy}px)`;
-            }
-            
-            function stopDrag() {
-                if (!isDragging) return;
-                const transform = element.style.transform;
-                const matches = transform.match(/translate\(([^,]+)px,\s*([^)]+)px\)/);
                 
-                if (matches) {
-                    const dx = parseFloat(matches[1]);
-                    const dy = parseFloat(matches[2]);
-                    let newX = initialX + dx;
-                    let newY = initialY + dy;
-                    const viewportWidth = window.innerWidth;
-                    const viewportHeight = window.innerHeight;
-                    const elementWidth = element.offsetWidth;
-                    const elementHeight = element.offsetHeight;
-                    newX = Math.max(0, Math.min(newX, viewportWidth - elementWidth));
-                    newY = Math.max(0, Math.min(newY, viewportHeight - elementHeight));
-                    element.style.left = newX + 'px';
-                    element.style.top = newY + 'px';
-                    element.style.transform = 'none';
-                    element.style.right = 'auto';
-                    element.style.bottom = 'auto';
+                const formData = new FormData(this);
+                const resultDiv = document.getElementById('uploadResult');
+                const submitBtn = this.querySelector('button[type="submit"]');
+                
+                // 显示加载状态
+                submitBtn.textContent = '上传中...';
+                submitBtn.disabled = true;
+                
+                try {
+                    const response = await fetch('/upload-wallpaper', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        resultDiv.innerHTML = `<div class="message message-success">✅ ${data.message}</div>`;
+                        resultDiv.innerHTML += `<p style="margin-top: 10px;">壁纸URL: <code>${data.wallpaperUrl}</code></p>`;
+                        
+                        // 立即更新页面背景
+                        document.body.style.backgroundImage = `url('${data.wallpaperUrl}')`;
+                        document.getElementById('currentWallpaper').innerHTML = `<code>${data.wallpaperUrl}</code>`;
+                        
+                        // 3秒后刷新页面
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 3000);
+                    } else {
+                        resultDiv.innerHTML = `<div class="message message-error">❌ ${data.error}</div>`;
+                    }
+                } catch (error) {
+                    resultDiv.innerHTML = `<div class="message message-error">❌ 上传失败: ${error.message}</div>`;
+                } finally {
+                    // 恢复按钮状态
+                    submitBtn.textContent = '上传壁纸';
+                    submitBtn.disabled = false;
+                }
+            });
+        }
+
+        // 添加书签功能
+        const addBookmarkForm = document.getElementById('addBookmarkForm');
+        if (addBookmarkForm) {
+            addBookmarkForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const data = Object.fromEntries(formData);
+                const submitBtn = this.querySelector('button[type="submit"]');
+                
+                // 验证URL格式
+                if (!data.url.startsWith('http://') && !data.url.startsWith('https://')) {
+                    alert('网址必须以 http:// 或 https:// 开头');
+                    return;
                 }
                 
-                isDragging = false;
-                debug('停止拖动调试窗口，位置已限制在视口内');
+                // 显示加载状态
+                submitBtn.textContent = '添加中...';
+                submitBtn.disabled = true;
+                
+                try {
+                    const response = await fetch('/bookmarks', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(data)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        alert('✅ 书签添加成功！');
+                        window.location.reload();
+                    } else {
+                        alert('❌ 添加失败: ' + result.error);
+                    }
+                } catch (error) {
+                    alert('❌ 添加失败: ' + error.message);
+                } finally {
+                    // 恢复按钮状态
+                    submitBtn.textContent = '添加书签';
+                    submitBtn.disabled = false;
+                }
+            });
+        }
+
+        // 删除书签功能
+        async function deleteBookmark(bookmarkId) {
+            if (!confirm('确定要删除这个书签吗？此操作不可撤销。')) return;
+            
+            try {
+                const response = await fetch(`/bookmarks/${bookmarkId}`, {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ 书签删除成功！');
+                    window.location.reload();
+                } else {
+                    alert('❌ 删除失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('❌ 删除失败: ' + error.message);
             }
         }
 
-        // 调试函数
-        function debug(message) {
-            const debugInfo = document.getElementById('debugInfo');
-            debugInfo.innerHTML += `<div>${new Date().toLocaleTimeString()}: ${message}</div>`;
-            debugInfo.scrollTop = debugInfo.scrollHeight;
-            console.log(message);
+        // 编辑书签功能
+        async function editBookmark(bookmarkId, currentName, currentUrl) {
+            const newName = prompt('请输入新的书签名称:', currentName);
+            if (newName === null) return;
+            
+            const newUrl = prompt('请输入新的网址:', currentUrl);
+            if (newUrl === null) return;
+            
+            // 验证URL格式
+            if (newUrl && !newUrl.startsWith('http://') && !newUrl.startsWith('https://')) {
+                alert('网址必须以 http:// 或 https:// 开头');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/bookmarks/${bookmarkId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: newName,
+                        url: newUrl
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('✅ 书签更新成功！');
+                    window.location.reload();
+                } else {
+                    alert('❌ 更新失败: ' + result.error);
+                }
+            } catch (error) {
+                alert('❌ 更新失败: ' + error.message);
+            }
         }
+
+        // 收起/展开收藏夹功能
+        const toggleFolderBtn = document.getElementById('toggleFolder');
+        if (toggleFolderBtn) {
+            toggleFolderBtn.addEventListener('click', function() {
+                const bookmarksSection = document.getElementById('bookmarksSection');
+                const folderIcon = document.getElementById('folderIcon');
+                const folderText = document.getElementById('folderText');
+                
+                if (bookmarksSection.style.display === 'none') {
+                    // 展开
+                    bookmarksSection.style.display = 'block';
+                    folderIcon.textContent = '📁';
+                    folderText.textContent = '收起收藏夹';
+                    localStorage.setItem('bookmarksCollapsed', 'false');
+                } else {
+                    // 收起
+                    bookmarksSection.style.display = 'none';
+                    folderIcon.textContent = '📂';
+                    folderText.textContent = '展开收藏夹';
+                    localStorage.setItem('bookmarksCollapsed', 'true');
+                }
+            });
+        }
+
+        // 收起收藏夹的函数
+        function collapseBookmarks() {
+            const bookmarksSection = document.getElementById('bookmarksSection');
+            const folderIcon = document.getElementById('folderIcon');
+            const folderText = document.getElementById('folderText');
+            
+            if (bookmarksSection) {
+                bookmarksSection.style.display = 'none';
+                folderIcon.textContent = '📂';
+                folderText.textContent = '展开收藏夹';
+            }
+        }
+
+        // 检查设置功能
+        async function checkSettings() {
+            try {
+                const response = await fetch('/debug/my-settings');
+                const data = await response.json();
+                
+                document.getElementById('settingsInfo').innerHTML = `
+                    <pre style="color: #fff; margin: 0;">${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('settingsInfo').innerHTML = `
+                    <div class="message message-error">检查设置失败: ${error.message}</div>
+                `;
+            }
+        }
+
+        // 清除缓存功能
+        function clearCache() {
+            if (confirm('确定要清除缓存吗？这将会刷新页面。')) {
+                localStorage.clear();
+                sessionStorage.clear();
+                // 强制刷新页面，忽略缓存
+                window.location.reload(true);
+            }
+        }
+
+        // 测试同步功能
+        async function testSync() {
+            try {
+                const response = await fetch('/api/bookmarks');
+                const data = await response.json();
+                
+                document.getElementById('settingsInfo').innerHTML = `
+                    <div class="message message-success">
+                        ✅ 同步测试成功！<br>
+                        当前用户有 ${data.bookmarks.length} 个书签
+                    </div>
+                    <pre style="color: #fff; margin: 10px 0 0 0; font-size: 10px;">
+最后更新: ${new Date().toLocaleString()}
+用户ID: <%= user.id %>
+书签数量: ${data.bookmarks.length}
+                    </pre>
+                `;
+            } catch (error) {
+                document.getElementById('settingsInfo').innerHTML = `
+                    <div class="message message-error">同步测试失败: ${error.message}</div>
+                `;
+            }
+        }
+
+        // 键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            // Ctrl + D 切换收藏夹显示
+            if (e.ctrlKey && e.key === 'd') {
+                e.preventDefault();
+                document.getElementById('toggleFolder')?.click();
+            }
+            
+            // Esc 键清除调试信息
+            if (e.key === 'Escape') {
+                document.getElementById('settingsInfo').innerHTML = '';
+            }
+        });
     </script>
 </body>
 </html>
