@@ -88,12 +88,18 @@ router.post('/login', async (req, res) => {
     req.session.userId = user._id;
     req.session.user = { 
       id: user._id,
-      username: user.username
+      username: user.username,
+      displayName: user.displayName || user.username,
+      avatar: user.avatar,
+      role: user.role
     };
     
-    // 更新最后登录时间
-    user.lastLogin = new Date();
-    await user.save();
+    // 更新最后登录时间并创建用户设置
+    await user.updateLastLogin();
+    
+    // 确保用户设置存在
+    const UserSettings = require('../models/UserSettings');
+    await UserSettings.getOrCreateSettings(user._id);
     
     console.log(`✅ 用户登录成功: ${user.username}`);
     return res.redirect('/');
@@ -185,8 +191,15 @@ router.post('/register', async (req, res) => {
     req.session.userId = user._id;
     req.session.user = { 
       id: user._id,
-      username: user.username
+      username: user.username,
+      displayName: user.username,
+      avatar: user.avatar,
+      role: user.role
     };
+    
+    // 确保用户设置存在
+    const UserSettings = require('../models/UserSettings');
+    await UserSettings.getOrCreateSettings(user._id);
     
     console.log(`✅ 新用户自动登录成功: ${user.username}`);
     return res.redirect('/');
