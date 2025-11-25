@@ -113,6 +113,7 @@ const upload = multer({
 app.use('/', require('./routes/auth'));
 app.use('/bookmarks', require('./routes/bookmarks'));
 app.use('/api', require('./routes/api'));
+app.use('/settings', require('./routes/settings')); // 新增设置路由
 
 // 主页路由
 app.get('/', (req, res) => {
@@ -123,7 +124,7 @@ app.get('/', (req, res) => {
 });
 
 // 壁纸上传路由
-app.post('/upload-wallpaper', upload.single('wallpaper'), (req, res) => {
+app.post('/upload-wallpaper', upload.single('wallpaper'), async (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: '请先登录' });
   }
@@ -133,11 +134,29 @@ app.post('/upload-wallpaper', upload.single('wallpaper'), (req, res) => {
   }
   
   const wallpaperUrl = '/images/wallpapers/' + req.file.filename;
-  res.json({ 
-    success: true, 
-    message: '壁纸上传成功',
-    wallpaperUrl: wallpaperUrl
-  });
+  
+  try {
+    // 更新用户设置中的壁纸
+    const UserSettings = require('./models/UserSettings');
+    const settings = await UserSettings.findOneAndUpdate(
+      { userId: req.session.userId },
+      { wallpaper: wallpaperUrl },
+      { new: true }
+    );
+    
+    if (!settings) {
+      return res.status(500).json({ error: '更新用户设置失败' });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: '壁纸上传成功',
+      wallpaperUrl: wallpaperUrl
+    });
+  } catch (error) {
+    console.error('壁纸上传错误:', error);
+    res.status(500).json({ error: '壁纸上传失败' });
+  }
 });
 
 // 健康检查端点
@@ -201,3 +220,25 @@ app.listen(PORT, '0.0.0.0', () => {
 });
 
 module.exports = app;
+
+// 添加缺失的 getConnectionInfo 函数
+function getConnectionInfo() {
+  const state = mongoose.connection.readyState;
+  let stateText = '';
+  
+  switch (state) {
+    case 0: stateText = '断开'; break;
+    case 1: stateText = '已连接'; break;
+    case 2: stateText = '连接中'; break;
+    case 3: stateText = '断开中'; break;
+    default: stateText = '未知';
+  }
+  
+  return {
+    isConnected: state === 1,
+    readyState: state,
+    readyStateText: stateText,
+    host: mongoose.connection.host || '未知',
+    name: mongoose.connection.name || '未知'
+  };
+}
