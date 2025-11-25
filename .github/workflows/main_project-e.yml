@@ -1,3 +1,6 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
 name: Build and deploy Node.js app to Azure Web App - Project-E
 
 on:
@@ -25,49 +28,11 @@ jobs:
           npm install
           npm run build --if-present
           npm run test --if-present        
-
+    
       - name: Create necessary directories
         run: |
           mkdir -p public/css
           mkdir -p public/images/wallpapers
-          mkdir -p scripts
-          
-      - name: Run database migration (if needed)
-        run: |
-          # 创建迁移脚本文件
-          cat > scripts/migrate.js << 'EOF'
-          const mongoose = require('mongoose');
-          const User = require('./models/User');
-          const UserSettings = require('./models/UserSettings');
-          const Bookmark = require('./models/Bookmark');
-          
-          const migrateDatabase = async () => {
-            try {
-              console.log('🚀 开始数据库迁移...');
-              await mongoose.connect(process.env.MONGODB_URI);
-              console.log('✅ 数据库连接成功');
-              
-              const users = await User.find({});
-              console.log(`📋 找到 ${users.length} 个用户`);
-              
-              for (const user of users) {
-                const existingSettings = await UserSettings.findOne({ userId: user._id });
-                if (!existingSettings) {
-                  await UserSettings.getOrCreateSettings(user._id);
-                  console.log(`✅ 为用户 ${user.username} 创建设置`);
-                }
-              }
-              
-              console.log('🎉 数据库迁移完成');
-            } catch (error) {
-              console.error('❌ 数据库迁移失败:', error);
-            } finally {
-              await mongoose.disconnect();
-            }
-          };
-          
-          migrateDatabase();
-          EOF
           
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
@@ -82,10 +47,6 @@ jobs:
     permissions:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
-
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
       - name: Download artifact from build job
@@ -108,7 +69,4 @@ jobs:
           slot-name: 'Production'
           package: .
 
-      - name: Verify deployment
-        run: |
-          echo "Deployment to Azure Web App completed successfully"
-          echo "Web App URL: https://project-e.azurewebsites.net"
+
