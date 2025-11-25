@@ -42,7 +42,42 @@ jobs:
           path: .
           retention-days: 1
 
-      
+      - name: Run database migration (if needed)
+        run: |
+          # 创建迁移脚本文件
+          cat > scripts/migrate.js << 'EOF'
+          const mongoose = require('mongoose');
+          const User = require('./models/User');
+          const UserSettings = require('./models/UserSettings');
+          const Bookmark = require('./models/Bookmark');
+          
+          const migrateDatabase = async () => {
+            try {
+              console.log('🚀 开始数据库迁移...');
+              await mongoose.connect(process.env.MONGODB_URI);
+              console.log('✅ 数据库连接成功');
+              
+              const users = await User.find({});
+              console.log(`📋 找到 ${users.length} 个用户`);
+              
+              for (const user of users) {
+                const existingSettings = await UserSettings.findOne({ userId: user._id });
+                if (!existingSettings) {
+                  await UserSettings.getOrCreateSettings(user._id);
+                  console.log(`✅ 为用户 ${user.username} 创建设置`);
+                }
+              }
+              
+              console.log('🎉 数据库迁移完成');
+            } catch (error) {
+              console.error('❌ 数据库迁移失败:', error);
+            } finally {
+              await mongoose.disconnect();
+            }
+          };
+          
+          migrateDatabase();
+          EOF
 
   deploy:
     runs-on: ubuntu-latest
@@ -71,6 +106,7 @@ jobs:
           app-name: 'Project-E'
           slot-name: 'Production'
           package: .
+
 
 
 
