@@ -1,23 +1,20 @@
 const express = require('express');
 const Bookmark = require('../models/Bookmark');
-const User = require('../models/User'); // 添加这行引入User模型
+const User = require('../models/User');
 const router = express.Router();
 
-// GET - 获取所有书签
+// GET - 获取所有书签（基于当前登录用户）
 router.get('/bookmarks', async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, userId } = req.query;
-    const query = {};
+    const { page = 1, limit = 10, search } = req.query;
+    const query = { userId: req.session.userId };
     
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { url: { $regex: search, $options: 'i' } }
+        { url: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } }
       ];
-    }
-    
-    if (userId) {
-      query.userId = userId;
     }
     
     const bookmarks = await Bookmark.find(query)
@@ -42,7 +39,10 @@ router.get('/bookmarks', async (req, res) => {
 // GET - 根据ID获取书签
 router.get('/bookmarks/:id', async (req, res) => {
   try {
-    const bookmark = await Bookmark.findById(req.params.id);
+    const bookmark = await Bookmark.findOne({ 
+      _id: req.params.id, 
+      userId: req.session.userId 
+    });
     if (!bookmark) {
       return res.status(404).json({ error: '书签未找到' });
     }
@@ -56,28 +56,39 @@ router.get('/bookmarks/:id', async (req, res) => {
 // POST - 创建书签
 router.post('/bookmarks', async (req, res) => {
   try {
-    const { name, url, icon, userId } = req.body;
+    const { name, url, icon, category, description } = req.body;
+    
     const bookmark = new Bookmark({
-      name,
+      name: name || '未命名书签',
       url,
-      icon,
-      userId: userId || 'anonymous'
+      icon: icon || '/images/default-icon.png',
+      category: category || '未分类',
+      description: description || '',
+      userId: req.session.userId || 'anonymous'
     });
+    
     await bookmark.save();
-    res.status(201).json(bookmark);
+    
+    res.status(201).json({
+      success: true,
+      bookmark: bookmark
+    });
   } catch (error) {
     console.error('创建书签API错误:', error);
-    res.status(500).json({ error: '创建书签失败' });
+    res.status(500).json({ 
+      success: false,
+      error: '创建书签失败: ' + error.message 
+    });
   }
 });
 
 // PUT - 更新书签
 router.put('/bookmarks/:id', async (req, res) => {
   try {
-    const { name, url, icon } = req.body;
-    const bookmark = await Bookmark.findByIdAndUpdate(
-      req.params.id,
-      { name, url, icon, updatedAt: new Date() },
+    const { name, url, icon, category, description } = req.body;
+    const bookmark = await Bookmark.findOneAndUpdate(
+      { _id: req.params.id, userId: req.session.userId },
+      { name, url, icon, category, description, updatedAt: new Date() },
       { new: true }
     );
     
@@ -85,7 +96,10 @@ router.put('/bookmarks/:id', async (req, res) => {
       return res.status(404).json({ error: '书签未找到' });
     }
     
-    res.json(bookmark);
+    res.json({
+      success: true,
+      bookmark: bookmark
+    });
   } catch (error) {
     console.error('更新书签API错误:', error);
     res.status(500).json({ error: '更新书签失败' });
@@ -95,11 +109,19 @@ router.put('/bookmarks/:id', async (req, res) => {
 // DELETE - 删除书签
 router.delete('/bookmarks/:id', async (req, res) => {
   try {
-    const bookmark = await Bookmark.findByIdAndDelete(req.params.id);
+    const bookmark = await Bookmark.findOneAndDelete({
+      _id: req.params.id,
+      userId: req.session.userId
+    });
+    
     if (!bookmark) {
       return res.status(404).json({ error: '书签未找到' });
     }
-    res.json({ message: '书签删除成功' });
+    
+    res.json({ 
+      success: true,
+      message: '书签删除成功' 
+    });
   } catch (error) {
     console.error('删除书签API错误:', error);
     res.status(500).json({ error: '删除书签失败' });
