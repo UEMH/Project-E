@@ -44,27 +44,13 @@
             visibility: hidden;
         }
         
-        /* 用户信息栏 */
+        /* 用户信息栏 - 修改为在收起收藏夹右侧 */
         .user-info {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 8px 15px;
-            border-radius: 20px;
-            backdrop-filter: blur(5px);
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
             display: flex;
             align-items: center;
             gap: 10px;
-            transition: all 0.3s ease;
-        }
-        
-        .user-info.hidden {
-            opacity: 0;
-            visibility: hidden;
+            margin-left: auto; /* 推到右侧 */
+            margin-right: 15px;
         }
         
         .auth-btn {
@@ -169,6 +155,7 @@
         .bookmarks-header-buttons {
             display: flex;
             gap: 10px;
+            align-items: center;
         }
         
         .header-btn {
@@ -591,19 +578,6 @@
         <% } %>
     </div>
 
-    <!-- 用户信息栏 -->
-    <div class="user-info" id="userInfo">
-        <% if (user) { %>
-            <span>欢迎, <%= user.username %></span>
-            <form action="/logout" method="POST" style="display: inline;">
-                <button type="submit" class="auth-btn">登出</button>
-            </form>
-        <% } else { %>
-            <a href="/login" class="auth-btn">登录</a>
-            <a href="/register" class="auth-btn">注册</a>
-        <% } %>
-    </div>
-
     <!-- 固定在顶部的书签栏 -->
     <div class="top-bookmarks" id="topBookmarks">
         <div class="bookmarks-container">
@@ -611,6 +585,19 @@
                 <!-- 书签将通过JavaScript动态生成 -->
             </div>
             <div class="bookmarks-header-buttons">
+                <!-- 用户信息栏 - 现在移动到收起收藏夹的右侧 -->
+                <div class="user-info" id="userInfo">
+                    <% if (user) { %>
+                        <span style="color: white; font-size: 0.9rem;">欢迎, <%= user.username %></span>
+                        <form action="/logout" method="POST" style="display: inline;">
+                            <button type="submit" class="auth-btn">登出</button>
+                        </form>
+                    <% } else { %>
+                        <a href="/login" class="auth-btn">登录</a>
+                        <a href="/register" class="auth-btn">注册</a>
+                    <% } %>
+                </div>
+
                 <button class="header-btn" id="importBookmarks" title="导入收藏夹">🚩</button>
                 <button class="header-btn <%= !user && 'disabled-btn' %>" id="changeWallpaper" title="更改壁纸" <%= !user && 'disabled' %>>🖼️</button>
                 <button class="header-btn" id="helpBtn" title="使用说明">❓</button>
