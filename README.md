@@ -2,11 +2,11 @@
 
 ## 项目信息
 - **项目名称**: Project-E 书签管理系统
-- **课程**: COMP S381F/3810SEF Autumn 2025
+- **课程**: COMP 3810SEF Autumn 2025
 - **小组信息**: 
-  - 小组成员: [在此填写小组成员姓名]
-  - 学号: [在此填写学号]
-  - 小组编号: [在此填写小组编号]
+  - 小组成员: [AU TSZ CHUN,CHAN CHOI NAM,LO KWOK CHIU]
+  - 学号: [13896925,12988397,13106366]
+  - 小组编号: [10]
 
 ## 项目文件介绍
 
@@ -48,7 +48,7 @@ EJS模板文件：
 - `Bookmark.js`: 书签模型
 
 ## 云服务器URL
-**测试URL**: https://project-e.azurewebsites.net/
+**测试URL**: https://project-e-fee2dcb0a0bffjbh.southafricanorth-01.azurewebsites.net
 
 ## 操作指南
 
@@ -74,5 +74,30 @@ EJS模板文件：
 ### RESTful CRUD服务API
 
 #### 1. GET - 获取书签列表
-```bash
-curl -X GET "https://project-e.azurewebsites.net/api/bookmarks"
+"——————————（Login）——————————
+curl -c cookies.txt -X POST ""https://project-e-fee2dcb0a0bffjbh.southafricanorth-01.azurewebsites.net/login"" \
+  -H ""Content-Type: application/x-www-form-urlencoded"" \
+  -d ""username=UEMH-CHAN&password=041018""
+——————————（Create）——————————
+curl -b cookies.txt -X POST ""https://project-e-fee2dcb0a0bffjbh.southafricanorth-01.azurewebsites.net/api/bookmarks"" \
+  -H ""Content-Type: application/json"" \
+  -d '{
+    ""name"": ""GOOGLE"",
+    ""url"": ""https://www.google.com"",
+    ""icon"": ""🔍"",
+    ""userId"": ""69234e16abb8b548142257be""
+  }'
+——————————（READ）——————————
+curl -b cookies.txt -X GET ""https://project-e-fee2dcb0a0bffjbh.southafricanorth-01.azurewebsites.net/api/bookmarks""
+——————————（UPDATE）——————————
+curl -b cookies.txt -X PUT ""https://project-e-fee2dcb0a0bffjbh.southafricanorth-01.azurewebsites.net/api/bookmarks/这里替换为书签ID"" \
+  -H ""Content-Type: application/json"" \
+  -d '{
+    ""name"": ""ELGOOG"",
+    ""url"": ""https://www.google.com"",
+    ""icon"": ""🔍""
+  }'
+——————————（DELETE）——————————
+curl -b cookies.txt -X DELETE ""https://project-e-fee2dcb0a0bffjbh.southafricanorth-01.azurewebsites.net/api/bookmarks/这里替换为书签ID""
+——————————（Logout）——————————
+curl -b cookies.txt -X POST ""https://project-e-fee2dcb0a0bffjbh.southafricanorth-01.azurewebsites.net/logout"""
