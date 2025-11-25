@@ -46,9 +46,6 @@ jobs:
       id-token: write #This is required for requesting the JWT
       contents: read #This is required for actions/checkout
 
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
 
     steps:
       - name: Download artifact from build job
@@ -64,14 +61,10 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_8F243862EEB64A68AE6BF3D4ACE42544 }}
 
       - name: 'Deploy to Azure Web App'
-        id: deploy-to-webapp
-        uses: azure/webapps-deploy@v3
+        uses: azure/webapps-deploy@v2
         with:
           app-name: 'Project-E'
           slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_1C2C5F3A6D2E4F5B8A3D1F9E4C7B2A1A }}
           package: .
 
-      - name: Verify deployment
-        run: |
-          echo "Deployment to Azure Web App completed successfully"
-          echo "Web App URL: https://project-e.azurewebsites.net"
