@@ -76,4 +76,5 @@ jobs:
       - name: Verify deployment
         run: |
           echo "Deployment to Azure Web App completed successfully"
-          echo "Web App URL: https://project-e.azurewebsites.net"
+          echo "Web App URL: https://project-e-fee2dcb0a0bffjbh.southafricanorth-01.azurewebsites.net"
+
