@@ -34,25 +34,34 @@ app.set('views', path.join(__dirname, 'views'));
 let dbConnected = false;
 
 // 启动数据库连接
-// 修改 initializeDB 函数
 const initializeDB = async () => {
   dbConnected = await connectDB();
   
-  // 如果数据库连接成功，创建默认用户并运行迁移
+  // 如果数据库连接成功，创建默认用户
   if (dbConnected) {
     try {
       const User = require('./models/User');
+      const UserSettings = require('./models/UserSettings');
+      
       await User.createDefaultAdmin();
       
-      // 延迟运行启动迁移
+      // 延迟执行用户设置检查
       setTimeout(async () => {
         try {
-          const startupMigration = require('./scripts/startup-migrate');
-          await startupMigration();
-        } catch (migrationError) {
-          console.error('启动迁移错误:', migrationError);
+          console.log('🔧 检查用户设置...');
+          const users = await User.find({});
+          for (const user of users) {
+            const existingSettings = await UserSettings.findOne({ userId: user._id });
+            if (!existingSettings) {
+              await UserSettings.getOrCreateSettings(user._id);
+              console.log(`✅ 为用户 ${user.username} 创建设置`);
+            }
+          }
+          console.log('✅ 用户设置检查完成');
+        } catch (error) {
+          console.error('用户设置检查失败:', error);
         }
-      }, 8000);
+      }, 5000);
       
       // 列出所有用户用于调试
       const users = await User.find({}, 'username createdAt');
@@ -67,13 +76,6 @@ const initializeDB = async () => {
 };
 
 initializeDB();
-
-setTimeout(() => {
-  if (checkConnection()) {
-    const startupMigration = require('./scripts/startup-migrate');
-    startupMigration();
-  }
-}, 5000); // 延迟10秒执行，确保数据库完全连接
 
 // 会话配置
 app.use(session({
@@ -134,11 +136,28 @@ app.use('/api', require('./routes/api'));
 app.use('/settings', require('./routes/settings')); // 新增设置路由
 
 // 主页路由
-app.get('/', (req, res) => {
-  res.render('dashboard', { 
-    user: req.session.user || null,
-    dbConnected: checkConnection()
-  });
+app.get('/', async (req, res) => {
+  try {
+    const UserSettings = require('./models/UserSettings');
+    let settings = null;
+    
+    if (req.session.userId) {
+      settings = await UserSettings.getOrCreateSettings(req.session.userId);
+    }
+    
+    res.render('dashboard', { 
+      user: req.session.user || null,
+      settings: settings,
+      dbConnected: checkConnection()
+    });
+  } catch (error) {
+    console.error('主页路由错误:', error);
+    res.render('dashboard', { 
+      user: req.session.user || null,
+      settings: null,
+      dbConnected: checkConnection()
+    });
+  }
 });
 
 // 壁纸上传路由
@@ -237,8 +256,6 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log(`🗄️  数据库状态: ${checkConnection() ? '已连接' : '未连接'}`);
 });
 
-module.exports = app;
-
 // 添加缺失的 getConnectionInfo 函数
 function getConnectionInfo() {
   const state = mongoose.connection.readyState;
@@ -261,3 +278,4 @@ function getConnectionInfo() {
   };
 }
 
+module.exports = app;
