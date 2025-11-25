@@ -34,14 +34,25 @@ app.set('views', path.join(__dirname, 'views'));
 let dbConnected = false;
 
 // 启动数据库连接
+// 修改 initializeDB 函数
 const initializeDB = async () => {
   dbConnected = await connectDB();
   
-  // 如果数据库连接成功，创建默认用户
+  // 如果数据库连接成功，创建默认用户并运行迁移
   if (dbConnected) {
     try {
       const User = require('./models/User');
       await User.createDefaultAdmin();
+      
+      // 延迟运行启动迁移
+      setTimeout(async () => {
+        try {
+          const startupMigration = require('./scripts/startup-migrate');
+          await startupMigration();
+        } catch (migrationError) {
+          console.error('启动迁移错误:', migrationError);
+        }
+      }, 8000);
       
       // 列出所有用户用于调试
       const users = await User.find({}, 'username createdAt');
@@ -56,6 +67,13 @@ const initializeDB = async () => {
 };
 
 initializeDB();
+
+setTimeout(() => {
+  if (checkConnection()) {
+    const startupMigration = require('./scripts/startup-migrate');
+    startupMigration();
+  }
+}, 5000); // 延迟10秒执行，确保数据库完全连接
 
 // 会话配置
 app.use(session({
@@ -242,3 +260,4 @@ function getConnectionInfo() {
     name: mongoose.connection.name || '未知'
   };
 }
+
